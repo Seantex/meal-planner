@@ -550,47 +550,91 @@ setTimeout(() => {
 
 const DAY_NAMES = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 
+let _dayGridOffset = 0;   // how many days shown so far
+let _dayGridStart  = null; // start Date
+
+function _addDayRow(grid, d, checked) {
+  const key     = d.toISOString().slice(0, 10);
+  const dayName = DAY_NAMES[d.getDay() === 0 ? 6 : d.getDay() - 1];
+  const isWeekend    = d.getDay() === 0 || d.getDay() === 6;
+  const defaultMittag = isWeekend && checked;
+  const defaultAbend  = checked;
+
+  const row = document.createElement('div');
+  row.className = 'day-row';
+  row.id = `day-row-${key}`;
+  row.innerHTML = `
+    <label class="day-row-check">
+      <input type="checkbox" name="day_${key}" value="1"
+             ${checked ? 'checked' : ''}
+             onchange="toggleDayRow('${key}', this.checked)">
+      <span class="day-row-name">${dayName}</span>
+      <span class="day-row-date">${d.toLocaleDateString('de-AT',{day:'numeric',month:'short'})}</span>
+    </label>
+    <div class="day-row-meals" id="meals-${key}" style="${checked ? '' : 'opacity:.35'}">
+      <label class="meal-check">
+        <input type="checkbox" name="meal_${key}" value="mittag"
+               ${defaultMittag ? 'checked' : ''} ${checked ? '' : 'disabled'}>
+        Mittag
+      </label>
+      <label class="meal-check">
+        <input type="checkbox" name="meal_${key}" value="abend"
+               ${defaultAbend ? 'checked' : ''} ${checked ? '' : 'disabled'}>
+        Abend
+      </label>
+    </div>
+    <button type="button" class="day-row-del" title="Tag entfernen"
+            onclick="removeDayRow('${key}')">✕</button>`;
+  // Insert before the +button row if it exists
+  const addBtn = document.getElementById('day-grid-add-btn');
+  if (addBtn) grid.insertBefore(row, addBtn);
+  else grid.appendChild(row);
+}
+
 function buildDayGrid() {
   const grid = document.getElementById('day-grid');
   const dateInput = document.getElementById('plan-start-date');
   if (!grid || !dateInput?.value) return;
 
-  const startDate = new Date(dateInput.value + 'T00:00:00');
+  _dayGridStart = new Date(dateInput.value + 'T00:00:00');
+  _dayGridOffset = 0;
   grid.innerHTML = '';
 
+  // First 7 days
   for (let i = 0; i < 7; i++) {
-    const d = new Date(startDate);
+    const d = new Date(_dayGridStart);
     d.setDate(d.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    const dayName = DAY_NAMES[d.getDay() === 0 ? 6 : d.getDay() - 1];
-
-    // Standardmäßig: Samstag/Sonntag = Mittag+Abend, Rest = nur Abend
-    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-    const defaultMittag = isWeekend;
-    const defaultAbend  = true;
-
-    const row = document.createElement('div');
-    row.className = 'day-row';
-    row.innerHTML = `
-      <label class="day-row-check">
-        <input type="checkbox" name="day_${key}" value="1"
-               ${defaultMittag || defaultAbend ? 'checked' : ''}
-               onchange="toggleDayRow('${key}', this.checked)">
-        <span class="day-row-name">${dayName}</span>
-        <span class="day-row-date">${d.toLocaleDateString('de-AT',{day:'numeric',month:'short'})}</span>
-      </label>
-      <div class="day-row-meals" id="meals-${key}">
-        <label class="meal-check">
-          <input type="checkbox" name="meal_${key}" value="mittag" ${defaultMittag ? 'checked' : ''}>
-          Mittag
-        </label>
-        <label class="meal-check">
-          <input type="checkbox" name="meal_${key}" value="abend" ${defaultAbend ? 'checked' : ''}>
-          Abend
-        </label>
-      </div>`;
-    grid.appendChild(row);
+    _addDayRow(grid, d, true);
+    _dayGridOffset++;
   }
+
+  // "+ Weiteren Tag" button
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.id = 'day-grid-add-btn';
+  addBtn.className = 'btn btn--outline btn--sm';
+  addBtn.style.marginTop = '6px';
+  addBtn.textContent = '＋ Weiteren Tag hinzufügen';
+  addBtn.onclick = addNextDay;
+  grid.appendChild(addBtn);
+}
+
+function addNextDay() {
+  if (!_dayGridStart || _dayGridOffset >= 14) return;
+  const grid = document.getElementById('day-grid');
+  const d = new Date(_dayGridStart);
+  d.setDate(d.getDate() + _dayGridOffset);
+  _addDayRow(grid, d, false);
+  _dayGridOffset++;
+  if (_dayGridOffset >= 14) {
+    const addBtn = document.getElementById('day-grid-add-btn');
+    if (addBtn) addBtn.style.display = 'none';
+  }
+}
+
+function removeDayRow(key) {
+  const row = document.getElementById(`day-row-${key}`);
+  if (row) row.remove();
 }
 
 function toggleDayRow(key, checked) {

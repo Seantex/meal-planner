@@ -1060,6 +1060,12 @@ a:hover { text-decoration: underline; }
 .day-row-meals { display: flex; gap: 14px; }
 .meal-check { display: flex; align-items: center; gap: 4px; font-size: .82rem; cursor: pointer; }
 .meal-check input[type=checkbox] { width: auto; accent-color: var(--c-primary); }
+.day-row-del {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  color: var(--c-text-muted); font-size: .9rem; padding: 2px 5px; border-radius: 4px;
+  transition: color .15s, background .15s;
+}
+.day-row-del:hover { color: #ef4444; background: rgba(239,68,68,.08); }
 
 /* ── Plan-Liste auf der Startseite ──────────────────────────────────────────── */
 .plan-list-item {
