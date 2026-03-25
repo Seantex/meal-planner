@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anmelden – Meal Planner</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=10">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#7c3aed">
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-brand">
+      <span class="brand-icon" style="font-size:2.5rem;">🍽️</span>
+      <h1 class="auth-title">Meal Planner</h1>
+      <p class="auth-subtitle">Plane deine Woche mit KI und Supermarkt-Angeboten</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert--{{ 'success' if category == 'success' else 'error' if category == 'error' else 'warning' }}" style="margin-bottom:16px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="auth-card">
+      <h2 class="auth-card-title">Anmelden</h2>
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+          <label class="form-label">E-Mail</label>
+          <input type="email" name="email" class="form-control" placeholder="deine@email.at"
+                 required autofocus autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Passwort</label>
+          <input type="password" name="password" class="form-control" placeholder="Passwort"
+                 required autocomplete="current-password">
+        </div>
+        <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" name="remember" id="remember" style="width:auto;">
+          <label for="remember" style="margin:0; font-weight:400; cursor:pointer;">Angemeldet bleiben</label>
+        </div>
+        <button type="submit" class="btn btn--primary btn--big" style="width:100%; margin-top:8px;">
+          Anmelden
+        </button>
+      </form>
+      <div class="auth-divider">oder</div>
+      <a href="{{ url_for('register') }}" class="btn btn--outline btn--big" style="width:100%; text-align:center; display:block;">
+        Neues Konto erstellen
+      </a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% set active_plan_id = active_plan.id if active_plan else none %}
+
+{% block title %}Übersicht{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-inner">
+    <h1>Wochenplaner</h1>
+    <p class="subtitle">Plane deine Woche mit aktuellen Supermarkt-Angeboten</p>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+
+  <!-- ── Angebote Card ── -->
+  <section class="card card--deals">
+    <div class="card-header">
+      <h2>🏷️ Aktuelle Angebote</h2>
+      {% if deals_fresh %}
+        <span class="badge badge--green">Aktuell</span>
+      {% else %}
+        <span class="badge badge--orange">Veraltet</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if store_counts %}
+        <p class="deals-count">{{ deals_count }} Angebote geladen</p>
+        <div class="store-badges">
+          {% for store, cnt in store_counts.items() %}
+            <div class="store-badge">
+              {{ store }} <span class="store-badge-count">{{ cnt }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-hint">Noch keine Angebote geladen.</p>
+      {% endif %}
+
+      <div class="deals-actions">
+        <!-- Alle 4 Supermärkte auf einmal -->
+        <form action="{{ url_for('refresh_deals') }}" method="POST"
+              onsubmit="setLoading(this, '⏳ Wird geladen…')">
+          <button type="submit" class="btn btn--primary">
+            🔄 Alle Angebote laden
+          </button>
+        </form>
+
+        <!-- Direktdownload pro Supermarkt -->
+        <details class="pdf-upload-details">
+          <summary class="btn btn--outline">🏪 Einzeln laden / PDF hochladen</summary>
+          <div class="supermarket-actions">
+
+            {% for market, url in flyer_urls.items() %}
+            <div class="market-row">
+              <span class="market-name">{{ market }}</span>
+              <form action="{{ url_for('fetch_deals_from_web', supermarket=market) }}"
+                    method="POST" style="display:inline"
+                    onsubmit="setLoading(this, '⏳ Lädt…')">
+                <button type="submit" class="btn btn--outline btn--sm">
+                  🌐 Von Website laden
+                </button>
+              </form>
+              <a href="{{ url }}" target="_blank" class="btn btn--ghost btn--sm">
+                Prospekt ansehen ↗
+              </a>
+            </div>
+            {% endfor %}
+
+            <!-- Manueller PDF-Upload -->
+            <div class="market-row market-row--upload">
+              <form action="{{ url_for('upload_pdf') }}" method="POST"
+                    enctype="multipart/form-data" class="pdf-form-inline"
+                    onsubmit="setLoading(this, '⏳ PDF wird verarbeitet…')">
+                <select name="supermarket" class="input-select" required>
+                  <option value="">Supermarkt…</option>
+                  <option>Hofer</option><option>Lidl</option>
+                  <option>Billa</option><option>Spar</option>
+                </select>
+                <label class="file-label-inline">
+                  <input type="file" name="pdf_file" accept=".pdf" required class="file-input">
+                  <span class="file-btn-sm">📄 PDF wählen</span>
+                </label>
+                <button type="submit" class="btn btn--primary btn--sm">Hochladen</button>
+              </form>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Neuer Plan Card ── -->
+  <section class="card card--new-plan">
+    <div class="card-header">
+      <h2>📅 Wochenplan erstellen</h2>
+    </div>
+    <div class="card-body">
+      {% if not api_configured %}
+        <div class="alert alert--warning">
+          <strong>API Key fehlt!</strong><br>
+          Erstelle eine <code>.env</code> Datei mit deinem Anthropic API Key:<br>
+          <code>ANTHROPIC_API_KEY=sk-ant-…</code>
+        </div>
+      {% endif %}
+
+      <form action="{{ url_for('new_plan') }}" method="POST" class="new-plan-form"
+            onsubmit="showPlanLoading()">
+        <button type="submit" class="btn btn--big btn--primary" id="gen-btn">
+          ✨ Wochenplan generieren
+        </button>
+      </form>
+      <div id="plan-loading" style="display:none; margin-top:14px; text-align:center;
+           color:var(--c-text-muted); font-size:.88rem; line-height:1.8;">
+        <span style="display:inline-block; width:18px; height:18px; border:3px solid var(--c-border);
+             border-top-color:var(--c-primary); border-radius:50%; animation:spin .8s linear infinite;
+             vertical-align:middle; margin-right:6px;"></span>
+        KI erstellt deinen Wochenplan… (15–30 Sek.)
+      </div>
+
+      {% if active_plan %}
+        <div class="separator">oder</div>
+        <a href="{{ url_for('planning', plan_id=active_plan.id) }}"
+           class="btn btn--outline btn--big">
+          📋 Offenen Plan weitermachen
+        </a>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ── Aktiver Plan Status ── -->
+  {% if active_plan %}
+  <section class="card card--status">
+    <div class="card-header">
+      <h2>📊 Aktueller Plan</h2>
+      <span class="badge badge--blue">In Bearbeitung</span>
+    </div>
+    <div class="card-body">
+      <p>Woche ab {{ active_plan.week_start }}</p>
+      <a href="{{ url_for('planning', plan_id=active_plan.id) }}"
+         class="btn btn--primary">Zum Plan →</a>
+    </div>
+  </section>
+  {% endif %}
+
+
+</div>
+{% endblock %}

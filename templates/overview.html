@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% set active_plan_id = plan.id %}
+
+{% block title %}Wochenübersicht{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-inner">
+    <a href="{{ url_for('planning', plan_id=plan.id) }}" class="back-link">← Zurück zur Planung</a>
+    <h1>📋 Wochenübersicht</h1>
+    <p class="subtitle">{{ selected_count }} von {{ total_slots }} Gerichten ausgewählt · Woche ab {{ plan.week_start }}</p>
+  </div>
+</div>
+
+{% if nutrition and nutrition.weekly_avg_per_day %}
+{% set avg = nutrition.weekly_avg_per_day %}
+<div class="overview-nutrition-bar">
+  <div class="nutr-summary-item">
+    <span class="nutr-summary-val">{{ avg.calories | round | int }}</span>
+    <span class="nutr-summary-label">kcal Ø/Tag</span>
+  </div>
+  <div class="nutr-summary-item nutr-summary-item--protein">
+    <span class="nutr-summary-val">{{ avg.protein | round | int }}g</span>
+    <span class="nutr-summary-label">Protein Ø/Tag</span>
+  </div>
+  <div class="nutr-summary-item">
+    <span class="nutr-summary-val">{{ avg.carbs | round | int }}g</span>
+    <span class="nutr-summary-label">Kohlenhydrate Ø/Tag</span>
+  </div>
+  <div class="nutr-summary-item">
+    <span class="nutr-summary-val">{{ avg.fat | round | int }}g</span>
+    <span class="nutr-summary-label">Fett Ø/Tag</span>
+  </div>
+</div>
+{% endif %}
+
+<div class="overview-grid">
+  {% for sr in selected_recipes %}
+  {% set recipe = sr.recipe %}
+  {% set slot = sr.slot %}
+
+  <div class="overview-card">
+    <!-- Slot-Header -->
+    <div class="overview-card-header">
+      <div class="overview-slot-info">
+        <span class="overview-slot-label">{{ slot.label }}</span>
+        <span class="overview-slot-note">{{ slot.note }}</span>
+      </div>
+      {% if slot.leftovers %}
+        <span class="overview-badge overview-badge--leftovers">🍱 +1 Portion</span>
+      {% else %}
+        <span class="overview-badge overview-badge--normal">🍽️ 2 Pers.</span>
+      {% endif %}
+    </div>
+
+    <!-- Rezept-Name + Badges -->
+    <div class="overview-recipe-name">{{ recipe.name }}</div>
+    <div class="overview-badges">
+      <span class="badge badge--diff-{{ recipe.difficulty }}">{{ recipe.difficulty }}</span>
+      {% if recipe.type == 'weekend' %}
+        <span class="badge badge--weekend">🌟 Wochenend</span>
+      {% else %}
+        <span class="badge badge--weekday">⚡ Schnell</span>
+      {% endif %}
+      <span class="badge">{{ recipe.category }}</span>
+    </div>
+
+    <!-- Zeit + Nährwerte -->
+    <div class="overview-meta">
+      <span class="overview-meta-item">⏱ <strong>{{ recipe.prep_time }}min</strong> aktiv</span>
+      <span class="overview-meta-item">⏰ <strong>{{ recipe.total_time }}min</strong> gesamt</span>
+      <span class="overview-meta-item">🔥 <strong>{{ recipe.nutrition_per_portion.calories }}</strong> kcal/Pers.</span>
+      <span class="overview-meta-item">💪 <strong>{{ recipe.nutrition_per_portion.protein }}g</strong> Protein</span>
+    </div>
+
+    <!-- Zutaten (nicht-basic) -->
+    <div class="overview-ingredients">
+      <div class="overview-ingredients-title">
+        Zutaten
+        {% if slot.leftovers %}
+          <span class="overview-portions-note">(für 3 Portionen)</span>
+        {% else %}
+          <span class="overview-portions-note">(für 2 Portionen)</span>
+        {% endif %}
+      </div>
+      <ul class="overview-ing-list">
+        {% for ing in recipe.ingredients %}
+        {% if not ing.is_basic %}
+        <li class="overview-ing-item">
+          <span class="overview-ing-amount">
+            {% if ing.amount %}
+              {% if slot.leftovers %}
+                {% set amt = (ing.amount * 1.5) %}
+                {{ amt | round(1) if amt != amt | int else amt | int }}
+              {% else %}
+                {{ ing.amount | int if ing.amount == ing.amount | int else ing.amount }}
+              {% endif %}
+              {{ ing.unit or '' }}
+            {% endif %}
+          </span>
+          <span class="overview-ing-name">{{ ing.name }}</span>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- Aktionen -->
+    <div class="overview-actions">
+      <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}"
+         class="btn btn--ghost btn--sm">
+        Rezept ansehen
+      </a>
+      {% if recipe.recipe_url %}
+      <a href="{{ recipe.recipe_url }}" target="_blank" rel="noopener"
+         class="btn btn--outline btn--sm">
+        Chefkoch ↗
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if selected_count == 0 %}
+  <div class="empty-state">
+    <p>Noch keine Gerichte ausgewählt.</p>
+    <a href="{{ url_for('planning', plan_id=plan.id) }}" class="btn btn--primary">
+      Jetzt Gerichte wählen →
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Aktionen unten -->
+<div class="plan-footer">
+  <a href="{{ url_for('planning', plan_id=plan.id) }}" class="btn btn--outline">
+    ← Zurück zur Planung
+  </a>
+  {% if selected_count == total_slots %}
+  <form action="{{ url_for('finish_plan', plan_id=plan.id) }}" method="POST" style="display:inline">
+    <button class="btn btn--primary" type="submit">
+      🛒 Einkaufsliste erstellen →
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

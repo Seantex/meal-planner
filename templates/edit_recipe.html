@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}{{ recipe.name }} bearbeiten{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-inner">
+    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="back-link">← Zurück zum Rezept</a>
+    <h1>✏️ Rezept bearbeiten</h1>
+    <p class="subtitle">{{ recipe.name }}</p>
+  </div>
+</div>
+
+<form action="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" method="POST" class="add-recipe-form">
+
+  <!-- ── Grundinfos ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">📋 Grundinfos</h2>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Rezeptname *</label>
+        <input type="text" name="name" class="form-input" required
+               value="{{ recipe.name }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kategorie</label>
+        <select name="category" class="form-input">
+          {% for val, label in [('pasta','🍝 Pasta'),('fleisch','🥩 Fleisch'),('fisch','🐟 Fisch'),
+                                 ('vegetarisch','🥦 Vegetarisch'),('eier','🥚 Eier'),
+                                 ('dessert','🧇 Dessert'),('sonstiges','🛒 Sonstiges')] %}
+          <option value="{{ val }}" {% if recipe.category == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="grid-column: 1 / -1">
+        <label class="form-label">Beschreibung</label>
+        <input type="text" name="description" class="form-input"
+               value="{{ recipe.description or '' }}" maxlength="200">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Typ & Schwierigkeit ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">⚙️ Typ & Schwierigkeit</h2>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label">Typ</label>
+        <select name="type" class="form-input">
+          <option value="weekday" {% if recipe.type == 'weekday' %}selected{% endif %}>⚡ Wochentag (≤45min)</option>
+          <option value="weekend" {% if recipe.type == 'weekend' %}selected{% endif %}>🌟 Wochenende</option>
+          <option value="both"    {% if recipe.type == 'both' %}selected{% endif %}>📅 Beides</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Schwierigkeit</label>
+        <select name="difficulty" class="form-input">
+          <option value="einfach" {% if recipe.difficulty == 'einfach' %}selected{% endif %}>Einfach</option>
+          <option value="mittel"  {% if recipe.difficulty == 'mittel' %}selected{% endif %}>Mittel</option>
+          <option value="schwer"  {% if recipe.difficulty == 'schwer' %}selected{% endif %}>Schwer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Portionen</label>
+        <input type="number" name="servings" class="form-input"
+               value="{{ recipe.servings }}" min="1" max="10">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Zeiten ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">⏱ Zeiten (in Minuten)</h2>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label">Aktive Kochzeit</label>
+        <input type="number" name="prep_time" class="form-input"
+               value="{{ recipe.prep_time }}" min="1" id="prep-time" oninput="updateTotal()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Warten / Passiv</label>
+        <input type="number" name="cook_time" class="form-input"
+               value="{{ recipe.cook_time }}" min="0" id="cook-time" oninput="updateTotal()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Gesamtzeit</label>
+        <input type="number" name="total_time" class="form-input"
+               value="{{ recipe.total_time }}" min="1" id="total-time">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Nährwerte ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">🥗 Nährwerte pro Portion</h2>
+    <div class="form-grid-4">
+      <div class="form-group">
+        <label class="form-label">🔥 Kalorien (kcal)</label>
+        <input type="number" name="calories" class="form-input"
+               value="{{ recipe.nutrition_per_portion.calories }}" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">💪 Protein (g)</label>
+        <input type="number" name="protein" class="form-input"
+               value="{{ recipe.nutrition_per_portion.protein }}" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🍞 Kohlenhydrate (g)</label>
+        <input type="number" name="carbs" class="form-input"
+               value="{{ recipe.nutrition_per_portion.carbs }}" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🫒 Fett (g)</label>
+        <input type="number" name="fat" class="form-input"
+               value="{{ recipe.nutrition_per_portion.fat }}" min="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Zutaten ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">🛒 Zutaten</h2>
+    <div class="ing-table-header">
+      <span>Menge</span>
+      <span>Einheit</span>
+      <span>Name</span>
+      <span>Kategorie</span>
+      <span>Vorrätig</span>
+      <span></span>
+    </div>
+    <div id="ingredients-list"></div>
+    <button type="button" class="btn btn--outline btn--sm" onclick="addIngredient()" style="margin-top:8px">
+      + Zutat hinzufügen
+    </button>
+  </div>
+
+  <!-- ── Tags & Tipps ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">🏷️ Tags & Tipp</h2>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Tags (kommagetrennt)</label>
+        <input type="text" name="tags" class="form-input"
+               value="{{ recipe.tags | join(', ') }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">💡 Tipp (optional)</label>
+        <input type="text" name="tips" class="form-input"
+               value="{{ recipe.tips or '' }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn--big btn--primary">✅ Änderungen speichern</button>
+    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn--outline btn--big">Abbrechen</a>
+  </div>
+
+</form>
+
+<!-- Löschen -->
+<div class="form-section" style="margin-top:24px; border-color: #fee2e2;">
+  <h2 class="form-section-title" style="color:#dc2626">⚠️ Rezept löschen</h2>
+  <p style="color:#6b7280; margin-bottom:12px">Das Rezept wird dauerhaft aus der Bibliothek entfernt.</p>
+  <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST"
+        onsubmit="return confirm('Rezept \"{{ recipe.name }}\" wirklich löschen?')">
+    <button type="submit" class="btn btn--danger">🗑️ Rezept löschen</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateTotal() {
+  const prep = parseInt(document.getElementById('prep-time').value) || 0;
+  const cook = parseInt(document.getElementById('cook-time').value) || 0;
+  document.getElementById('total-time').value = prep + cook;
+}
+
+const ING_CATEGORIES = ['nudeln','reis','fleisch','fisch','gemüse','milch','eier','käse','konserven','gewürze','sonstiges'];
+
+function addIngredient(name='', amount='', unit='g', category='sonstiges', isBasic=false) {
+  const list = document.getElementById('ingredients-list');
+  const idx = list.children.length;
+  const row = document.createElement('div');
+  row.className = 'ing-row';
+  row.innerHTML = `
+    <input type="number" name="ing_amount[]" class="form-input ing-amount"
+           value="${amount}" placeholder="200" step="0.1" min="0">
+    <input type="text"   name="ing_unit[]"   class="form-input ing-unit"
+           value="${unit}" placeholder="g">
+    <input type="text"   name="ing_name[]"   class="form-input ing-name"
+           value="${name}" placeholder="z.B. Spaghetti" required>
+    <select name="ing_category[]" class="form-input ing-cat">
+      ${ING_CATEGORIES.map(c => `<option value="${c}" ${c===category?'selected':''}>${c}</option>`).join('')}
+    </select>
+    <label class="ing-basic-check">
+      <input type="checkbox" name="ing_basic[]" value="${idx}" ${isBasic?'checked':''}>
+      <span>Vorrätig</span>
+    </label>
+    <button type="button" class="btn-icon btn-icon--danger" onclick="this.closest('.ing-row').remove()">🗑️</button>
+  `;
+  list.appendChild(row);
+}
+
+// Pre-fill existing ingredients
+const existingIngredients = {{ recipe.ingredients | tojson }};
+existingIngredients.forEach(ing => {
+  addIngredient(ing.name, ing.amount || '', ing.unit || 'g', ing.category || 'sonstiges', ing.is_basic || false);
+});
+</script>
+{% endblock %}

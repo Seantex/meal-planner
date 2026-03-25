@@ -1,0 +1,47 @@
+<div class="recipe-card {% if recipe.id in never_again_ids %}recipe-card--never{% endif %}"
+     data-recipe-id="{{ recipe.id }}">
+
+  <div class="recipe-card-header">
+    <div class="recipe-badges">
+      {% if recipe.id in favorites %}
+        <span class="badge badge--fav">⭐ Favorit</span>
+      {% endif %}
+      {% if recipe.type == 'weekend' %}
+        <span class="badge badge--weekend">🌟 Wochenende</span>
+      {% else %}
+        <span class="badge badge--weekday">⚡ Schnell</span>
+      {% endif %}
+      <span class="badge badge--diff-{{ recipe.difficulty }}">{{ recipe.difficulty }}</span>
+    </div>
+    <div class="recipe-actions-top">
+      <button class="btn-icon {% if recipe.id in favorites %}btn-icon--active{% endif %}"
+              title="Favorit"
+              onclick="toggleFavorite('{{ recipe.id }}', this)">⭐</button>
+      <button class="btn-icon {% if recipe.id in never_again_ids %}btn-icon--danger-active{% endif %}"
+              title="Nie wieder"
+              onclick="markNeverAgain('{{ recipe.id }}', '{{ recipe.name }}', this)">🚫</button>
+    </div>
+  </div>
+
+  <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="recipe-card-link">
+    <h3 class="recipe-name">{{ recipe.name }}</h3>
+    <p class="recipe-desc">{{ recipe.description }}</p>
+  </a>
+
+  <div class="recipe-meta">
+    <span class="meta-item" title="Aktive Kochzeit">⏱ {{ recipe.prep_time }}min</span>
+    <span class="meta-item" title="Gesamtzeit">⏰ {{ recipe.total_time }}min</span>
+    <span class="meta-item" title="Kalorien pro Portion">🔥 {{ recipe.nutrition_per_portion.calories }} kcal</span>
+    <span class="meta-item meta-item--protein" title="Protein pro Portion">💪 {{ recipe.nutrition_per_portion.protein }}g</span>
+  </div>
+
+  {% if recipe.id in never_again_ids %}
+  <div class="never-overlay">
+    <span>🚫 Ausgeblendet</span>
+    <button class="btn btn--ghost btn--xs"
+            onclick="toggleNever('{{ recipe.id }}', 'remove', this)">
+      Wiederherstellen
+    </button>
+  </div>
+  {% endif %}
+</div>

@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}{{ recipe.name }}{% endblock %}
+
+{% block content %}
+<div class="recipe-detail">
+
+  <div class="recipe-detail-header">
+    <a href="{{ url_for('recipes') }}" class="back-link">← Zurück zu Rezepten</a>
+    <div class="recipe-detail-title-row">
+      <h1>{{ recipe.name }}</h1>
+      <div class="recipe-detail-actions">
+        <button class="btn btn--outline {% if is_fav %}btn--active{% endif %}"
+                id="fav-btn"
+                onclick="toggleFavorite('{{ recipe.id }}', this)">
+          {% if is_fav %}⭐ Favorit{% else %}☆ Zu Favoriten{% endif %}
+        </button>
+        <button class="btn btn--outline-danger {% if is_never %}btn--active{% endif %}"
+                id="never-btn"
+                onclick="markNeverAgain('{{ recipe.id }}', '{{ recipe.name }}', this)">
+          {% if is_never %}🚫 Ausgeblendet{% else %}🚫 Nie wieder{% endif %}
+        </button>
+        <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn--outline">✏️ Bearbeiten</a>
+      </div>
+    </div>
+    <p class="recipe-detail-desc">{{ recipe.description }}</p>
+
+    <!-- Badges -->
+    <div class="recipe-detail-badges">
+      {% if recipe.type == 'weekend' %}
+        <span class="badge badge--weekend">🌟 Wochenend-Rezept</span>
+      {% else %}
+        <span class="badge badge--weekday">⚡ Schnell (Wochentag)</span>
+      {% endif %}
+      <span class="badge badge--diff-{{ recipe.difficulty }}">{{ recipe.difficulty }}</span>
+      <span class="badge">{{ recipe.category }}</span>
+    </div>
+  </div>
+
+  <!-- Zeitinfo + Nährwerte -->
+  <div class="recipe-info-grid">
+    <div class="info-box">
+      <span class="info-icon">⏱</span>
+      <span class="info-val">{{ recipe.prep_time }} min</span>
+      <span class="info-label">Aktive Kochzeit</span>
+    </div>
+    <div class="info-box">
+      <span class="info-icon">⏰</span>
+      <span class="info-val">{{ recipe.total_time }} min</span>
+      <span class="info-label">Gesamtzeit</span>
+    </div>
+    <div class="info-box">
+      <span class="info-icon">👥</span>
+      <span class="info-val">{{ recipe.servings }}</span>
+      <span class="info-label">Personen</span>
+    </div>
+    <div class="info-box info-box--calories">
+      <span class="info-icon">🔥</span>
+      <span class="info-val">{{ recipe.nutrition_per_portion.calories }}</span>
+      <span class="info-label">kcal / Person</span>
+    </div>
+    <div class="info-box info-box--protein">
+      <span class="info-icon">💪</span>
+      <span class="info-val">{{ recipe.nutrition_per_portion.protein }}g</span>
+      <span class="info-label">Protein / Person</span>
+    </div>
+    <div class="info-box">
+      <span class="info-icon">🍞</span>
+      <span class="info-val">{{ recipe.nutrition_per_portion.carbs }}g</span>
+      <span class="info-label">Kohlenhydrate</span>
+    </div>
+    <div class="info-box">
+      <span class="info-icon">🫒</span>
+      <span class="info-val">{{ recipe.nutrition_per_portion.fat }}g</span>
+      <span class="info-label">Fett</span>
+    </div>
+  </div>
+
+  <div class="recipe-detail-body">
+
+    <!-- Zutaten -->
+    <div class="recipe-ingredients">
+      <h2>🛒 Zutaten <span class="for-persons">für 2 Personen</span>
+        <span class="ing-total-cost">~€{{ "%.2f"|format(total_cost) }}</span>
+      </h2>
+      <ul class="ingredient-list">
+        {% for ing in recipe.ingredients %}
+        {% set cost = ing_costs.get(ing.name) %}
+        <li class="ingredient-item {% if ing.is_basic %}ingredient-item--basic{% endif %}">
+          <span class="ing-amount">
+            {% if ing.amount %}
+              {{ ing.amount|int if ing.amount == ing.amount|int else ing.amount }}
+              {{ ing.unit or '' }}
+            {% else %}
+              {{ ing.unit or 'nach Bedarf' }}
+            {% endif %}
+          </span>
+          <span class="ing-name">{{ ing.name }}</span>
+          {% if ing.is_basic %}
+            <span class="ing-basic-tag">Vorrätig</span>
+          {% elif cost is not none and cost > 0 %}
+            <span class="ing-cost-tag">~€{{ "%.2f"|format(cost) }}</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+
+      {% if recipe.tips %}
+      <div class="recipe-tip">
+        <strong>💡 Tipp:</strong> {{ recipe.tips }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Kochanweisungen -->
+    <div class="recipe-instructions-section" id="instructions-section">
+      <div class="instructions-header">
+        <h2>👨‍🍳 Zubereitung</h2>
+        {% if not instructions %}
+        <button class="btn btn--primary btn--sm" id="gen-instructions-btn"
+                onclick="loadInstructions('{{ recipe.id }}')">
+          ✨ Kochanleitung generieren
+        </button>
+        {% endif %}
+      </div>
+
+      <div id="instructions-content">
+        {% if instructions %}
+        <ol class="instruction-list">
+          {% for step in instructions %}
+          <li class="instruction-step">
+            <span class="step-number">{{ loop.index }}</span>
+            <span class="step-text">{{ step }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <p class="instructions-placeholder">
+          Klicke auf "Kochanleitung generieren" — unsere KI erstellt eine detaillierte Schritt-für-Schritt Anleitung für dieses Rezept.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="recipe-tags-section">
+      <div class="tag-list">
+        {% for tag in recipe.tags %}
+          <span class="tag">{{ tag }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- KI-Rezept-Modifikation -->
+    <div class="recipe-modify-section" id="modify-section">
+      <div class="modify-header">
+        <h2>✏️ Rezept anpassen</h2>
+        <p class="modify-subtitle">Lass die KI das Rezept nach deinen Wünschen anpassen – z.B. "ohne Fleisch", "statt Milch Sojamilch", "ohne Champignons"</p>
+      </div>
+      <div class="modify-input-row">
+        <input type="text" id="modify-input" class="modify-input"
+               placeholder="z.B. ohne Fleisch, vegetarisch, ohne Nüsse, statt Sahne Kokosmilch…"
+               maxlength="200">
+        <button class="btn btn--primary" onclick="modifyRecipe('{{ recipe.id }}')">
+          ✨ Anpassen
+        </button>
+      </div>
+      <div id="modify-result" class="modify-result" style="display:none"></div>
+    </div>
+
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+async function loadInstructions(recipeId) {
+  const btn = document.getElementById('gen-instructions-btn');
+  const content = document.getElementById('instructions-content');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Wird generiert…'; }
+  if (content) content.innerHTML = '<div class="loading-spinner">KI generiert Kochanleitung…</div>';
+
+  try {
+    const res = await fetch(`/api/recipe/${recipeId}/instructions`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success && data.instructions) {
+      content.innerHTML = `<ol class="instruction-list">${
+        data.instructions.map((step, i) =>
+          `<li class="instruction-step"><span class="step-number">${i+1}</span><span class="step-text">${step}</span></li>`
+        ).join('')
+      }</ol>`;
+      if (btn) btn.remove();
+    } else {
+      content.innerHTML = '<p class="empty-hint">Konnte keine Anleitung laden. Bitte versuche es erneut.</p>';
+      if (btn) { btn.disabled = false; btn.textContent = '✨ Kochanleitung generieren'; }
+    }
+  } catch(e) {
+    content.innerHTML = '<p class="empty-hint">Fehler beim Generieren.</p>';
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Kochanleitung generieren'; }
+  }
+}
+
+async function modifyRecipe(recipeId) {
+  const input = document.getElementById('modify-input');
+  const result = document.getElementById('modify-result');
+  const btn = document.querySelector('#modify-section .btn--primary');
+  const modification = input ? input.value.trim() : '';
+  if (!modification) { input?.focus(); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ KI passt an…'; }
+  if (result) { result.style.display = 'block'; result.innerHTML = '<div class="loading-spinner">KI passt dein Rezept an…</div>'; }
+
+  try {
+    const res = await fetch(`/api/recipe/${recipeId}/modify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modification })
+    });
+    const data = await res.json();
+    if (data.success) {
+      result.innerHTML = `
+        <div class="modify-result-box">
+          <h3>${data.title || 'Modifiziertes Rezept'}</h3>
+          ${data.note ? `<p class="modify-note">💡 ${data.note}</p>` : ''}
+          ${data.ingredients && data.ingredients.length ? `
+            <div class="modify-section-title">Zutaten:</div>
+            <ul class="modify-ing-list">
+              ${data.ingredients.map(i => `<li>${i}</li>`).join('')}
+            </ul>` : ''}
+          ${data.steps && data.steps.length ? `
+            <div class="modify-section-title">Zubereitung:</div>
+            <ol class="modify-steps-list">
+              ${data.steps.map(s => `<li>${s}</li>`).join('')}
+            </ol>` : ''}
+        </div>`;
+    } else {
+      result.innerHTML = `<p class="empty-hint">${data.error || 'KI-Anpassung fehlgeschlagen. Bitte prüfe das API-Guthaben.'}</p>`;
+    }
+  } catch(e) {
+    result.innerHTML = '<p class="empty-hint">Fehler bei der KI-Anfrage.</p>';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '✨ Anpassen'; }
+}
+</script>
+{% endblock %}
+
+<!-- Never-Again Modal -->
+<div id="never-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>🚫 Rezept ausblenden</h3>
+    <p>Dieses Rezept wird nie mehr vorgeschlagen.</p>
+    <div class="form-group">
+      <label class="form-label">Grund (optional):</label>
+      <input type="text" id="never-reason" class="form-input"
+             placeholder="z.B. schmeckt uns nicht, Allergie…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn--danger" onclick="confirmNeverAgain()">Ausblenden</button>
+      <button class="btn btn--outline" onclick="closeNeverModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

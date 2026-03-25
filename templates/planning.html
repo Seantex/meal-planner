@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% set active_plan_id = plan.id %}
+
+{% block title %}Wochenplan{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-inner">
+    <h1>📅 Wochenplan erstellen</h1>
+    <p class="subtitle">Wähle für jeden Tag dein Abendessen – die Reste sind dein Mittagessen am nächsten Tag</p>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: {{ progress_pct }}%"></div>
+    </div>
+    <span class="progress-label">{{ completed }}/{{ total }} Gerichte gewählt</span>
+  </div>
+</div>
+
+{% if completed == total %}
+<div class="alert alert--success finish-alert">
+  <strong>🎉 Alle Gerichte ausgewählt!</strong>
+  Schließe den Plan ab um deine Einkaufsliste zu generieren.
+  <form action="{{ url_for('finish_plan', plan_id=plan.id) }}" method="POST" style="display:inline">
+    <button class="btn btn--primary btn--sm" type="submit">🛒 Einkaufsliste erstellen →</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="planning-grid">
+  {% for slot_data in slots_data %}
+  {% set slot = slot_data.slot %}
+  {% set selected = slot_data.selected_recipe %}
+
+  <div class="meal-card {% if selected %}meal-card--done{% endif %} {% if slot_data.skipped %}meal-card--skipped{% endif %}"
+       id="slot-{{ slot.id }}">
+    <div class="meal-card-header">
+      <div class="meal-info">
+        <h3 class="meal-title">{{ slot.label }}</h3>
+        <span class="meal-note">{{ slot.note }}</span>
+      </div>
+      {% if slot_data.skipped %}
+        <span class="meal-status" style="color:var(--c-text-muted)">🚫 Übersprungen</span>
+        <button class="btn btn--ghost btn--xs skip-btn"
+                onclick="unskipSlot('{{ slot.id }}', {{ plan.id }})">Rückgängig</button>
+      {% elif selected %}
+        <span class="meal-status meal-status--done">✓ Gewählt</span>
+      {% else %}
+        <span class="meal-status meal-status--open">Offen</span>
+        <button class="btn btn--ghost btn--xs skip-btn"
+                onclick="skipSlot('{{ slot.id }}', {{ plan.id }})">🚫 Überspringen</button>
+      {% endif %}
+    </div>
+
+    <!-- Ausgewähltes Rezept anzeigen -->
+    {% if selected %}
+    <div class="selected-recipe">
+      <div class="selected-recipe-info">
+        <span class="selected-name">{{ selected.name }}</span>
+        <div class="selected-meta">
+          <span class="meta-tag">⏱ {{ selected.prep_time }}min aktiv</span>
+          <span class="meta-tag">⏰ {{ selected.total_time }}min gesamt</span>
+          <span class="meta-tag">💪 {{ selected.nutrition_per_portion.protein }}g Protein</span>
+        </div>
+      </div>
+      <button class="btn btn--outline btn--sm change-btn"
+              onclick="toggleSuggestions('{{ slot.id }}')">
+        Ändern
+      </button>
+    </div>
+    {% endif %}
+
+    <!-- Vorschläge -->
+    <div class="suggestions-wrap {% if selected or slot_data.skipped %}suggestions-wrap--hidden{% endif %}"
+         id="suggestions-{{ slot.id }}">
+      <div class="suggestions-header">
+        <span class="suggestions-title">3 Vorschläge für dich:</span>
+        <button class="btn btn--ghost btn--xs regenerate-btn"
+                onclick="regenerateSlot('{{ slot.id }}', {{ plan.id }})">
+          🔄 Zufall
+        </button>
+      </div>
+
+      <div class="suggestions-list" id="suggestions-list-{{ slot.id }}">
+        {% for s in slot_data.suggestions %}
+        <div class="suggestion-item {% if s.is_never_again %}suggestion-item--never{% endif %}"
+             data-recipe-id="{{ s.recipe.id }}">
+          <div class="suggestion-main">
+            <div class="suggestion-header">
+              <span class="suggestion-name">{{ s.recipe.name }}</span>
+              <div class="suggestion-badges">
+                {% if s.deal_matches %}
+                  <span class="badge badge--deal">🏷️ Angebot</span>
+                {% endif %}
+                {% if s.is_favorite %}
+                  <span class="badge badge--fav">⭐ Favorit</span>
+                {% endif %}
+                <span class="badge badge--diff-{{ s.recipe.difficulty }}">
+                  {{ s.recipe.difficulty }}
+                </span>
+              </div>
+            </div>
+
+            <p class="suggestion-desc">{{ s.recipe.description }}</p>
+
+            <div class="suggestion-meta">
+              <span class="meta-item">⏱ <strong>{{ s.recipe.prep_time }}min</strong> aktiv</span>
+              <span class="meta-item">⏰ <strong>{{ s.recipe.total_time }}min</strong> gesamt</span>
+              <span class="meta-item">🔥 <strong>{{ s.recipe.nutrition_per_portion.calories }}</strong> kcal</span>
+              <span class="meta-item">💪 <strong>{{ s.recipe.nutrition_per_portion.protein }}g</strong> Protein</span>
+              <span class="meta-item meta-item--cost">💰 <strong>ca. €{{ s.estimated_cost }}</strong></span>
+            </div>
+
+            {% if s.reason %}
+            <p class="suggestion-reason">💡 {{ s.reason }}</p>
+            {% endif %}
+
+            {% if s.deal_matches %}
+            <div class="deal-matches">
+              {% for dm in s.deal_matches %}
+                <span class="deal-match-chip">{{ dm }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Zutaten inline (ausklappbar) -->
+            {% set all_ings = s.recipe.ingredients | rejectattr('is_basic', 'equalto', true) | list %}
+            {% if all_ings %}
+            <details class="suggestion-ingredients">
+              <summary class="suggestion-ingredients-toggle">🧾 Zutaten anzeigen ({{ all_ings | length }})</summary>
+              <ul class="suggestion-ing-list">
+                {% for ing in all_ings %}
+                {% set icost = s.ing_costs.get(ing.name, 0) if s.ing_costs else 0 %}
+                <li class="suggestion-ing-item">
+                  <span class="suggestion-ing-amount">
+                    {% if ing.amount %}{{ ing.amount | int if ing.amount == ing.amount | int else ing.amount }} {{ ing.unit }}{% endif %}
+                  </span>
+                  <span class="suggestion-ing-name">{{ ing.name }}</span>
+                  {% if icost and icost > 0 %}
+                    <span class="ing-cost-tag">~€{{ "%.2f"|format(icost) }}</span>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+            </details>
+            {% endif %}
+          </div>
+
+          <div class="suggestion-actions">
+            <button class="btn btn--primary btn--sm select-btn"
+                    onclick="selectRecipe('{{ plan.id }}', '{{ slot.id }}', '{{ s.recipe.id }}', this)">
+              Auswählen ✓
+            </button>
+            <a href="{{ url_for('recipe_detail', recipe_id=s.recipe.id) }}"
+               class="btn btn--ghost btn--sm" target="_blank">
+              Rezept ansehen
+            </a>
+            <div class="recipe-actions-mini">
+              <button class="btn-icon {% if s.is_favorite %}btn-icon--active{% endif %}"
+                      title="{% if s.is_favorite %}Aus Favoriten entfernen{% else %}Zu Favoriten hinzufügen{% endif %}"
+                      onclick="toggleFavorite('{{ s.recipe.id }}', this)">⭐</button>
+              <button class="btn-icon btn-icon--danger"
+                      title="Nie wieder vorschlagen"
+                      onclick="markNeverAgain('{{ s.recipe.id }}', '{{ s.recipe.name }}', this)">🚫</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if not slot_data.suggestions %}
+        <div class="empty-suggestions">
+          <p>Keine Vorschläge verfügbar. Klicke auf "Neue Vorschläge".</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Wunsch-Feld pro Slot -->
+      <div class="wish-bar">
+        <input type="text"
+               class="wish-input"
+               id="wish-{{ slot.id }}"
+               placeholder="✨ Eigener Wunsch… z.B. Schnitzel, Thai Curry, etwas Leichtes mit Fisch"
+               maxlength="200">
+        <button class="btn btn--primary btn--sm wish-btn"
+                onclick="wishRecipe('{{ slot.id }}', {{ plan.id }})">
+          ✨ KI-Rezept
+        </button>
+      </div>
+      <div id="wish-result-{{ slot.id }}"></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Abschließen Button (unten) -->
+<div class="plan-footer">
+  {% if completed > 0 %}
+  <a href="{{ url_for('plan_overview', plan_id=plan.id) }}" class="btn btn--outline">
+    📋 Wochenübersicht ({{ completed }}/{{ total }})
+  </a>
+  {% endif %}
+  {% if completed == total %}
+  <form action="{{ url_for('finish_plan', plan_id=plan.id) }}" method="POST" style="display:inline">
+    <button class="btn btn--big btn--primary" type="submit">
+      🛒 Plan abschließen &amp; Einkaufsliste erstellen
+    </button>
+  </form>
+  {% else %}
+  <p class="plan-footer-hint">Noch {{ total - completed }} Gericht(e) ausstehend</p>
+  {% endif %}
+</div>
+
+<!-- Never-Again Modal -->
+<div id="never-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>🚫 Rezept ausblenden</h3>
+    <p>Dieses Rezept wird nie mehr vorgeschlagen.</p>
+    <div class="form-group">
+      <label class="form-label">Grund (optional):</label>
+      <input type="text" id="never-reason" class="form-input"
+             placeholder="z.B. schmeckt uns nicht, Allergie…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn--danger" onclick="confirmNeverAgain()">Ausblenden</button>
+      <button class="btn btn--outline" onclick="closeNeverModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PLAN_ID = {{ plan.id }};
+</script>
+{% endblock %}

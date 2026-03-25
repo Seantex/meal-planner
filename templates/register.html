@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrieren – Meal Planner</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=10">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#7c3aed">
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-brand">
+      <span class="brand-icon" style="font-size:2.5rem;">🍽️</span>
+      <h1 class="auth-title">Meal Planner</h1>
+      <p class="auth-subtitle">Plane deine Woche mit KI und Supermarkt-Angeboten</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert--{{ 'success' if category == 'success' else 'error' if category == 'error' else 'warning' }}" style="margin-bottom:16px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="auth-card">
+      <h2 class="auth-card-title">Konto erstellen</h2>
+      <form method="POST" action="{{ url_for('register') }}">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input type="text" name="name" class="form-control" placeholder="Dein Name"
+                 required autofocus autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-Mail</label>
+          <input type="email" name="email" class="form-control" placeholder="deine@email.at"
+                 required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Passwort <span style="color:var(--c-text-muted); font-weight:400;">(min. 6 Zeichen)</span></label>
+          <input type="password" name="password" class="form-control" placeholder="Passwort wählen"
+                 required minlength="6" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Passwort wiederholen</label>
+          <input type="password" name="password2" class="form-control" placeholder="Passwort bestätigen"
+                 required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn--primary btn--big" style="width:100%; margin-top:8px;">
+          Konto erstellen
+        </button>
+      </form>
+      <div class="auth-divider">bereits ein Konto?</div>
+      <a href="{{ url_for('login') }}" class="btn btn--outline btn--big" style="width:100%; text-align:center; display:block;">
+        Anmelden
+      </a>
+    </div>
+  </div>
+</body>
+</html>

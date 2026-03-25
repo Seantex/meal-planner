@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Rezepte{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-inner">
+    <h1>📖 Rezepte</h1>
+    <p class="subtitle">{{ all_count }} Rezepte · Favoriten werden öfter vorgeschlagen</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <button class="btn btn--primary" onclick="document.getElementById('ai-recipe-modal').style.display='flex'">
+      ✨ KI-Rezept erstellen
+    </button>
+    <a href="{{ url_for('add_recipe') }}" class="btn btn--outline">➕ Manuell hinzufügen</a>
+  </div>
+</div>
+
+<!-- KI-Rezept Modal -->
+<div id="ai-recipe-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+     z-index:1000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#fff; border-radius:16px; padding:32px; max-width:560px; width:100%;
+              box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <h2 style="margin:0 0 8px; font-size:1.3rem;">✨ Rezept per KI erstellen</h2>
+    <p style="color:var(--c-text-muted); font-size:.88rem; margin:0 0 20px;">
+      Beschreibe was du möchtest – die KI erstellt ein vollständiges Rezept mit Zutaten &amp; Anleitung und speichert es dauerhaft.
+    </p>
+    <input id="ai-recipe-wish" type="text" class="form-input" style="width:100%; margin-bottom:14px;"
+           placeholder="z.B. Big Mac Bowl, Teriyaki Chicken, Vegane Pasta Arrabiata…"
+           maxlength="200" onkeydown="if(event.key==='Enter') startAiRecipe()">
+    <div style="display:flex; gap:10px; margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;cursor:pointer;">
+        <input type="radio" name="ai-slot-type" value="weekday" checked> ⚡ Wochentag (≤45min)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;cursor:pointer;">
+        <input type="radio" name="ai-slot-type" value="weekend"> 🌟 Wochenende
+      </label>
+    </div>
+    <div id="ai-recipe-status" style="display:none; margin-bottom:14px; color:var(--c-text-muted);
+         font-size:.88rem; text-align:center;">
+      <span style="display:inline-block; width:16px; height:16px; border:2px solid var(--c-border);
+           border-top-color:var(--c-primary); border-radius:50%; animation:spin .8s linear infinite;
+           vertical-align:middle; margin-right:6px;"></span>
+      KI generiert Rezept… (10–20 Sek.)
+    </div>
+    <div id="ai-recipe-error" style="display:none; color:#dc2626; font-size:.85rem; margin-bottom:12px;"></div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn btn--outline" onclick="document.getElementById('ai-recipe-modal').style.display='none'">
+        Abbrechen
+      </button>
+      <button id="ai-recipe-btn" class="btn btn--primary" onclick="startAiRecipe()">
+        ✨ Generieren &amp; Speichern
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function startAiRecipe() {
+  const wish = document.getElementById('ai-recipe-wish').value.trim();
+  if (!wish) { document.getElementById('ai-recipe-wish').focus(); return; }
+  const slotType = document.querySelector('input[name="ai-slot-type"]:checked').value;
+  const btn = document.getElementById('ai-recipe-btn');
+  const status = document.getElementById('ai-recipe-status');
+  const errEl = document.getElementById('ai-recipe-error');
+  btn.disabled = true;
+  status.style.display = 'block';
+  errEl.style.display = 'none';
+  fetch('/recipes/ai-generate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({wish, slot_type: slotType})
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      window.location.href = data.redirect;
+    } else {
+      errEl.textContent = data.error || 'Unbekannter Fehler';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      status.style.display = 'none';
+    }
+  })
+  .catch(() => {
+    errEl.textContent = 'Netzwerkfehler – bitte nochmal versuchen.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    status.style.display = 'none';
+  });
+}
+// Klick außerhalb schließt Modal
+document.getElementById('ai-recipe-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+</script>
+
+<!-- Filter & Suche -->
+<form method="GET" action="{{ url_for('recipes') }}" class="filter-bar">
+  <div class="search-wrap">
+    <input type="text" name="q" value="{{ search }}"
+           class="form-input search-input"
+           placeholder="Rezept suchen… (z.B. Pizza, Lachs, Curry)">
+    <button type="submit" class="btn btn--primary">🔍</button>
+  </div>
+  <div class="filter-chips">
+    <a href="{{ url_for('recipes', q=search) }}"
+       class="filter-chip {% if not selected_type %}filter-chip--active{% endif %}">
+      Alle
+    </a>
+    <a href="{{ url_for('recipes', q=search, type='weekday') }}"
+       class="filter-chip {% if selected_type == 'weekday' %}filter-chip--active{% endif %}">
+      ⚡ Schnell (≤45min)
+    </a>
+    <a href="{{ url_for('recipes', q=search, type='weekend') }}"
+       class="filter-chip {% if selected_type == 'weekend' %}filter-chip--active{% endif %}">
+      🌟 Wochenende
+    </a>
+  </div>
+  <div class="filter-chips">
+    {% for cat in categories %}
+    <a href="{{ url_for('recipes', q=search, cat=cat, type=selected_type) }}"
+       class="filter-chip {% if selected_cat == cat %}filter-chip--active{% endif %}">
+      {{ {'pasta':'🍝 Pasta','fleisch':'🥩 Fleisch','fisch':'🐟 Fisch',
+          'vegetarisch':'🥦 Vegetarisch','eier':'🥚 Eier','dessert':'🧇 Dessert'}.get(cat, cat) }}
+    </a>
+    {% endfor %}
+  </div>
+</form>
+
+<!-- Rezept-Gruppen: Wochenende zuerst, dann Wochentag -->
+{% set weekend_recipes = recipes | selectattr('type', 'eq', 'weekend') | list %}
+{% set weekday_recipes = recipes | selectattr('type', 'ne', 'weekend') | list %}
+
+{% if weekend_recipes and not selected_type %}
+<div class="recipes-section">
+  <h2 class="section-title">🌟 Wochenend-Rezepte
+    <span class="section-hint">(auch für große Abendessen unter der Woche geeignet)</span>
+  </h2>
+  <div class="recipes-grid">
+    {% for recipe in weekend_recipes %}
+      {% include '_recipe_card.html' %}
+    {% endfor %}
+  </div>
+</div>
+
+<div class="recipes-section">
+  <h2 class="section-title">⚡ Schnelle Abendessen
+    <span class="section-hint">(≤45min aktive Kochzeit – perfekt für Wochentage)</span>
+  </h2>
+  <div class="recipes-grid">
+    {% for recipe in weekday_recipes %}
+      {% include '_recipe_card.html' %}
+    {% endfor %}
+  </div>
+</div>
+
+{% else %}
+<div class="recipes-grid">
+  {% for recipe in recipes %}
+    {% include '_recipe_card.html' %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not recipes %}
+<div class="empty-state">
+  <p>Keine Rezepte gefunden für "{{ search }}".</p>
+  <a href="{{ url_for('recipes') }}" class="btn btn--outline">Filter zurücksetzen</a>
+</div>
+{% endif %}
+
+{% endblock %}

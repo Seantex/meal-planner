@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Rezept hinzufügen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-inner">
+    <a href="{{ url_for('recipes') }}" class="back-link">← Zurück zu Rezepten</a>
+    <h1>➕ Rezept hinzufügen</h1>
+    <p class="subtitle">Füge ein eigenes Rezept zur Bibliothek hinzu</p>
+  </div>
+</div>
+
+<form action="{{ url_for('add_recipe') }}" method="POST" class="add-recipe-form">
+
+  <!-- ── Grundinfos ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">📋 Grundinfos</h2>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Rezeptname *</label>
+        <input type="text" name="name" class="form-input" required
+               placeholder="z.B. Spaghetti Carbonara">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kategorie</label>
+        <select name="category" class="form-input">
+          <option value="pasta">🍝 Pasta</option>
+          <option value="fleisch">🥩 Fleisch</option>
+          <option value="fisch">🐟 Fisch</option>
+          <option value="vegetarisch">🥦 Vegetarisch</option>
+          <option value="eier">🥚 Eier</option>
+          <option value="dessert">🧇 Dessert</option>
+          <option value="sonstiges">🛒 Sonstiges</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column: 1 / -1">
+        <label class="form-label">Beschreibung</label>
+        <input type="text" name="description" class="form-input"
+               placeholder="Kurze Beschreibung des Rezepts…" maxlength="200">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Typ & Schwierigkeit ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">⚙️ Typ & Schwierigkeit</h2>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label">Typ</label>
+        <select name="type" class="form-input">
+          <option value="weekday">⚡ Wochentag (≤45min)</option>
+          <option value="weekend">🌟 Wochenende</option>
+          <option value="both">📅 Beides</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Schwierigkeit</label>
+        <select name="difficulty" class="form-input">
+          <option value="einfach">Einfach</option>
+          <option value="mittel" selected>Mittel</option>
+          <option value="schwer">Schwer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Portionen</label>
+        <input type="number" name="servings" class="form-input" value="2" min="1" max="10">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Zeiten ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">⏱ Zeiten (in Minuten)</h2>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label">Aktive Kochzeit</label>
+        <input type="number" name="prep_time" class="form-input" value="20" min="1" id="prep-time" oninput="updateTotal()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Warten / Passiv</label>
+        <input type="number" name="cook_time" class="form-input" value="20" min="0" id="cook-time" oninput="updateTotal()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Gesamtzeit</label>
+        <input type="number" name="total_time" class="form-input" value="40" min="1" id="total-time">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Nährwerte ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">🥗 Nährwerte pro Portion</h2>
+    <div class="form-grid-4">
+      <div class="form-group">
+        <label class="form-label">🔥 Kalorien (kcal)</label>
+        <input type="number" name="calories" class="form-input" value="500" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">💪 Protein (g)</label>
+        <input type="number" name="protein" class="form-input" value="30" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🍞 Kohlenhydrate (g)</label>
+        <input type="number" name="carbs" class="form-input" value="50" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🫒 Fett (g)</label>
+        <input type="number" name="fat" class="form-input" value="15" min="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Zutaten ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">🛒 Zutaten</h2>
+    <div class="ing-table-header">
+      <span>Menge</span>
+      <span>Einheit</span>
+      <span>Name</span>
+      <span>Kategorie</span>
+      <span>Vorrätig</span>
+      <span></span>
+    </div>
+    <div id="ingredients-list">
+      <!-- Rows injected by JS -->
+    </div>
+    <button type="button" class="btn btn--outline btn--sm" onclick="addIngredient()" style="margin-top:8px">
+      + Zutat hinzufügen
+    </button>
+  </div>
+
+  <!-- ── Tags & Tipps ── -->
+  <div class="form-section">
+    <h2 class="form-section-title">🏷️ Tags & Tipp</h2>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Tags (kommagetrennt)</label>
+        <input type="text" name="tags" class="form-input"
+               placeholder="z.B. pasta, schnell, italienisch">
+      </div>
+      <div class="form-group">
+        <label class="form-label">💡 Tipp (optional)</label>
+        <input type="text" name="tips" class="form-input"
+               placeholder="z.B. Das Pastawasser nicht vergessen!">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn--big btn--primary">✅ Rezept speichern</button>
+    <a href="{{ url_for('recipes') }}" class="btn btn--outline btn--big">Abbrechen</a>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateTotal() {
+  const prep = parseInt(document.getElementById('prep-time').value) || 0;
+  const cook = parseInt(document.getElementById('cook-time').value) || 0;
+  document.getElementById('total-time').value = prep + cook;
+}
+
+const ING_CATEGORIES = ['nudeln','reis','fleisch','fisch','gemüse','milch','eier','käse','konserven','gewürze','sonstiges'];
+
+function addIngredient(name='', amount='', unit='g', category='sonstiges', isBasic=false) {
+  const list = document.getElementById('ingredients-list');
+  const idx = list.children.length;
+  const row = document.createElement('div');
+  row.className = 'ing-row';
+  row.innerHTML = `
+    <input type="number" name="ing_amount[]" class="form-input ing-amount"
+           value="${amount}" placeholder="200" step="0.1" min="0">
+    <input type="text"   name="ing_unit[]"   class="form-input ing-unit"
+           value="${unit}" placeholder="g">
+    <input type="text"   name="ing_name[]"   class="form-input ing-name"
+           value="${name}" placeholder="z.B. Spaghetti" required>
+    <select name="ing_category[]" class="form-input ing-cat">
+      ${ING_CATEGORIES.map(c => `<option value="${c}" ${c===category?'selected':''}>${c}</option>`).join('')}
+    </select>
+    <label class="ing-basic-check">
+      <input type="checkbox" name="ing_basic[]" value="${idx}" ${isBasic?'checked':''}>
+      <span>Vorrätig</span>
+    </label>
+    <button type="button" class="btn-icon btn-icon--danger" onclick="this.closest('.ing-row').remove()">🗑️</button>
+  `;
+  list.appendChild(row);
+}
+
+// Start with 3 empty rows
+addIngredient(); addIngredient(); addIngredient();
+</script>
+{% endblock %}
