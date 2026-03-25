@@ -98,27 +98,36 @@
     <div class="card-body">
       {% if not api_configured %}
         <div class="alert alert--warning">
-          <strong>API Key fehlt!</strong><br>
-          Erstelle eine <code>.env</code> Datei mit deinem Anthropic API Key:<br>
-          <code>ANTHROPIC_API_KEY=sk-ant-…</code>
+          <strong>API Key fehlt!</strong> Trage deinen Anthropic API Key als Umgebungsvariable ein.
         </div>
       {% endif %}
 
       <form action="{{ url_for('new_plan') }}" method="POST" class="new-plan-form"
-            onsubmit="showPlanLoading()">
-        <div class="form-group" style="margin-bottom:12px;">
-          <label class="form-label" style="font-size:.85rem;">Wochenplan beginnt am:</label>
-          <input type="date" name="week_start" value="{{ week_start }}"
-                 class="form-control" style="font-size:.9rem;">
+            id="new-plan-form" onsubmit="showPlanLoading()">
+
+        <!-- Startdatum -->
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label" style="font-size:.85rem;">Startdatum</label>
+          <input type="date" name="week_start" id="plan-start-date" value="{{ week_start }}"
+                 class="form-control" style="font-size:.9rem;" onchange="buildDayGrid()">
         </div>
+
+        <!-- Personen -->
         <div class="form-group" style="margin-bottom:12px;">
-          <label class="form-label" style="font-size:.85rem;">Für wie viele Personen kochst du?</label>
-          <div style="display:flex; align-items:center; gap:10px;">
+          <label class="form-label" style="font-size:.85rem;">Personen</label>
+          <div style="display:flex;align-items:center;gap:10px;">
             <input type="number" name="default_persons" min="1" max="10" value="2"
-                   class="form-control" style="width:80px; text-align:center; font-size:1rem; font-weight:700;">
-            <span style="color:var(--c-text-muted); font-size:.85rem;">Personen (Standard für alle Tage)</span>
+                   class="form-control" style="width:72px;text-align:center;font-weight:700;">
+            <span style="color:var(--c-text-muted);font-size:.82rem;">Standard für alle Tage</span>
           </div>
         </div>
+
+        <!-- Tag-/Mahlzeit-Auswahl -->
+        <div style="margin-bottom:14px;">
+          <label class="form-label" style="font-size:.85rem;margin-bottom:6px;">Tage & Mahlzeiten auswählen</label>
+          <div id="day-grid" class="day-grid"></div>
+        </div>
+
         <button type="submit" class="btn btn--big btn--primary" id="gen-btn">
           ✨ Wochenplan generieren
         </button>
@@ -130,28 +139,29 @@
              vertical-align:middle; margin-right:6px;"></span>
         KI erstellt deinen Wochenplan… (15–30 Sek.)
       </div>
-
-      {% if active_plan %}
-        <div class="separator">oder</div>
-        <a href="{{ url_for('planning', plan_id=active_plan.id) }}"
-           class="btn btn--outline btn--big">
-          📋 Offenen Plan weitermachen
-        </a>
-      {% endif %}
     </div>
   </section>
 
-  <!-- ── Aktiver Plan Status ── -->
-  {% if active_plan %}
-  <section class="card card--status">
+  <!-- ── Meine Pläne ── -->
+  {% if recent_plans %}
+  <section class="card card--plans-list">
     <div class="card-header">
-      <h2>📊 Aktueller Plan</h2>
-      <span class="badge badge--blue">In Bearbeitung</span>
+      <h2>📋 Meine Pläne</h2>
     </div>
-    <div class="card-body">
-      <p>Woche ab {{ active_plan.week_start }}</p>
-      <a href="{{ url_for('planning', plan_id=active_plan.id) }}"
-         class="btn btn--primary">Zum Plan →</a>
+    <div class="card-body" style="padding:0;">
+      {% for p in recent_plans %}
+      <a href="{{ url_for('planning', plan_id=p.id) }}" class="plan-list-item {% if loop.first %}plan-list-item--active{% endif %}">
+        <div class="plan-list-info">
+          <span class="plan-list-date">ab {{ p.week_start }}</span>
+          {% if p.status == 'done' %}
+            <span class="badge badge--green" style="font-size:.72rem;">Abgeschlossen</span>
+          {% else %}
+            <span class="badge badge--blue" style="font-size:.72rem;">In Bearbeitung</span>
+          {% endif %}
+        </div>
+        <span class="plan-list-arrow">→</span>
+      </a>
+      {% endfor %}
     </div>
   </section>
   {% endif %}

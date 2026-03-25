@@ -1046,6 +1046,34 @@ a:hover { text-decoration: underline; }
 .cooked-btn:hover { border-color: #16a34a; color: #16a34a; }
 .cooked-btn--active { background: #dcfce7; border-color: #16a34a; color: #16a34a; font-weight: 600; }
 
+/* ── Tag-Grid (neue Plan-Erstellung) ────────────────────────────────────────── */
+.day-grid { display: flex; flex-direction: column; gap: 6px; }
+.day-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(124,58,237,.04); border-radius: var(--r-sm);
+  padding: 7px 10px; border: 1px solid var(--c-border);
+}
+.day-row-check { display: flex; align-items: center; gap: 6px; cursor: pointer; min-width: 130px; }
+.day-row-check input[type=checkbox] { width: auto; accent-color: var(--c-primary); }
+.day-row-name { font-weight: 600; font-size: .85rem; }
+.day-row-date { font-size: .76rem; color: var(--c-text-muted); }
+.day-row-meals { display: flex; gap: 14px; }
+.meal-check { display: flex; align-items: center; gap: 4px; font-size: .82rem; cursor: pointer; }
+.meal-check input[type=checkbox] { width: auto; accent-color: var(--c-primary); }
+
+/* ── Plan-Liste auf der Startseite ──────────────────────────────────────────── */
+.plan-list-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; border-bottom: 1px solid var(--c-border);
+  text-decoration: none; color: var(--c-text); transition: background var(--transition);
+}
+.plan-list-item:last-child { border-bottom: none; }
+.plan-list-item:hover { background: rgba(124,58,237,.04); }
+.plan-list-item--active { background: rgba(124,58,237,.07); }
+.plan-list-info { display: flex; align-items: center; gap: 10px; }
+.plan-list-date { font-weight: 600; font-size: .9rem; }
+.plan-list-arrow { color: var(--c-primary); font-weight: 700; }
+
 /* ── Print ───────────────────────────────────────────────────────────────────── */
 @media print {
   .navbar, .footer, .shopping-actions, .item-actions,

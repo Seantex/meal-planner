@@ -506,20 +506,27 @@ def deals_are_fresh() -> bool:
 
 # ── Wochenplan ─────────────────────────────────────────────────────────────────
 
-def create_week_plan(week_start: str, cravings: str = "", user_id: int = 1, default_persons: int = 2) -> int:
+def create_week_plan(week_start: str, cravings: str = "", user_id: int = 1,
+                     default_persons: int = 2, slot_config: list = None) -> int:
     conn = get_db()
     cur = conn.execute("""
         INSERT INTO week_plans (user_id, week_start, cravings, default_persons) VALUES (?, ?, ?, ?)
     """, (user_id, week_start, cravings, default_persons))
     plan_id = cur.lastrowid
-    # Standard-Slots aus config.py kopieren
-    for i, slot in enumerate(MEAL_SLOTS):
+    # Slots: benutzerdefiniert oder Standard aus config.py
+    slots_source = slot_config if slot_config else [
+        {"id": s["id"], "label": s["label"], "type": s.get("type","weekday"),
+         "note": s.get("note",""), "leftovers": s.get("leftovers", False)}
+        for s in MEAL_SLOTS
+    ]
+    for i, slot in enumerate(slots_source):
         conn.execute("""
             INSERT OR IGNORE INTO plan_slots
                 (plan_id, slot_id, label, type, note, leftovers, sort_order)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (plan_id, slot["id"], slot["label"], slot.get("type", "weekday"),
-              slot.get("note", ""), int(slot.get("leftovers", False)), i))
+              slot.get("note", ""), int(slot.get("leftovers", False)),
+              slot.get("sort_order", i)))
     conn.commit()
     conn.close()
     return plan_id
@@ -545,6 +552,17 @@ def get_plan(plan_id: int, user_id: int = None):
         r = conn.execute("SELECT * FROM week_plans WHERE id = ?", (plan_id,)).fetchone()
     conn.close()
     return dict(r) if r else None
+
+
+def get_recent_plans(user_id: int, limit: int = 8) -> list:
+    """Gibt die letzten Pläne eines Users zurück."""
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT * FROM week_plans WHERE user_id = ?
+        ORDER BY created_at DESC LIMIT ?
+    """, (user_id, limit)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 
 def finish_plan(plan_id: int):

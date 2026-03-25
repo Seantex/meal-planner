@@ -54,8 +54,6 @@
           </button>
         {% else %}
           <span class="meal-status meal-status--open">Offen</span>
-          <button class="btn btn--ghost btn--xs skip-btn"
-                  onclick="skipSlot('{{ slot.id }}', {{ plan.id }})">🚫 Überspringen</button>
         {% endif %}
         <button class="btn-icon slot-edit-btn" title="Umbenennen"
                 onclick="editSlot('{{ slot.id }}', {{ plan.id }}, '{{ slot.label|replace("'","\\\'") }}', '{{ slot.note|replace("'","\\\'") }}', {{ 1 if slot.leftovers else 0 }})">✏️</button>

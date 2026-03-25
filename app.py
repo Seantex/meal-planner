@@ -69,6 +69,57 @@ def _current_week_start() -> str:
     return (today + timedelta(days=days_until_saturday or 7)).isoformat()
 
 
+_WEEKDAY_NAMES = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+_WEEKDAY_SHORT  = ["mo",    "di",       "mi",       "do",         "fr",      "sa",       "so"]
+
+
+def _parse_slot_config(form, week_start: str) -> list | None:
+    """
+    Liest aus dem Formular die ausgewählten Tage + Mittag/Abend-Auswahl.
+    Gibt eine Liste von Slot-Dicts zurück oder None (→ Standard MEAL_SLOTS).
+    """
+    try:
+        start_date = date.fromisoformat(week_start)
+    except (ValueError, AttributeError):
+        return None
+
+    slots = []
+    sort_idx = 0
+    # Bis zu 14 Tage erlauben (2 Wochen)
+    for offset in range(14):
+        d = start_date + timedelta(days=offset)
+        day_key = d.strftime("%Y-%m-%d")
+        if f"day_{day_key}" not in form:
+            continue
+        day_name = _WEEKDAY_NAMES[d.weekday()]
+        short    = _WEEKDAY_SHORT[d.weekday()]
+        meal_types = form.getlist(f"meal_{day_key}")  # ['mittag','abend'] oder subset
+
+        if "mittag" in meal_types:
+            slots.append({
+                "id":        f"{short}_mittag_{day_key}",
+                "label":     f"{day_name} Mittag",
+                "type":      "weekend" if d.weekday() >= 5 else "weekday",
+                "note":      "Mittagessen",
+                "leftovers": False,
+                "sort_order": sort_idx,
+            })
+            sort_idx += 1
+        if "abend" in meal_types:
+            # Reste nur wenn auch das nächste Mittag ausgewählt ist → einfachheitshalber immer False hier
+            slots.append({
+                "id":        f"{short}_abend_{day_key}",
+                "label":     f"{day_name} Abend",
+                "type":      "weekend" if d.weekday() >= 5 else "weekday",
+                "note":      "",
+                "leftovers": False,
+                "sort_order": sort_idx,
+            })
+            sort_idx += 1
+
+    return slots if slots else None
+
+
 def _uid() -> int:
     """Gibt die aktuelle User-ID zurück."""
     return current_user.id
@@ -176,7 +227,10 @@ def logout():
 @login_required
 def index():
     db.init_db()
-    active_plan = db.get_active_plan(_uid())
+    from config import LIMITS
+    plan_limit = LIMITS.get("plan", 1)
+    recent_plans = db.get_recent_plans(_uid(), limit=plan_limit * 4)  # zeige ein paar Wochen
+    active_plan = recent_plans[0] if recent_plans else None
     deals = db.get_deals()
     deals_fresh = db.deals_are_fresh()
     api_configured = bool(ANTHROPIC_API_KEY)
@@ -187,6 +241,8 @@ def index():
     return render_template(
         "index.html",
         active_plan=active_plan,
+        recent_plans=recent_plans,
+        plan_limit=plan_limit,
         deals_count=len(deals),
         store_counts=store_counts,
         deals_fresh=deals_fresh,
@@ -276,7 +332,9 @@ def new_plan():
     except (ValueError, AttributeError):
         week_start = _current_week_start()
     default_persons = max(1, min(10, int(request.form.get("default_persons", 2) or 2)))
-    plan_id = db.create_week_plan(week_start, cravings, _uid(), default_persons=default_persons)
+    plan_id = db.create_week_plan(week_start, cravings, _uid(),
+                                  default_persons=default_persons,
+                                  slot_config=_parse_slot_config(request.form, week_start))
     db.increment_ai_usage(_uid(), "plan")
 
     try:
@@ -1287,7 +1345,11 @@ def reset_password(token):
     return render_template("reset_password.html", token=token)
 
 
+# Beim Start (auch via gunicorn): Verzeichnisse + DB initialisieren
+_db_dir = os.path.dirname(os.path.abspath(__import__('config').DB_PATH))
+os.makedirs(_db_dir, exist_ok=True)
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+db.init_db()
+
 if __name__ == "__main__":
-    db.init_db()
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
     app.run(debug=DEBUG, port=5001)

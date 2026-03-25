@@ -546,6 +546,66 @@ setTimeout(() => {
   });
 }, 5000);
 
+// ── Tage-Grid beim Erstellen eines neuen Plans ────────────────────────────────
+
+const DAY_NAMES = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+
+function buildDayGrid() {
+  const grid = document.getElementById('day-grid');
+  const dateInput = document.getElementById('plan-start-date');
+  if (!grid || !dateInput?.value) return;
+
+  const startDate = new Date(dateInput.value + 'T00:00:00');
+  grid.innerHTML = '';
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    const dayName = DAY_NAMES[d.getDay() === 0 ? 6 : d.getDay() - 1];
+
+    // Standardmäßig: Samstag/Sonntag = Mittag+Abend, Rest = nur Abend
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    const defaultMittag = isWeekend;
+    const defaultAbend  = true;
+
+    const row = document.createElement('div');
+    row.className = 'day-row';
+    row.innerHTML = `
+      <label class="day-row-check">
+        <input type="checkbox" name="day_${key}" value="1"
+               ${defaultMittag || defaultAbend ? 'checked' : ''}
+               onchange="toggleDayRow('${key}', this.checked)">
+        <span class="day-row-name">${dayName}</span>
+        <span class="day-row-date">${d.toLocaleDateString('de-AT',{day:'numeric',month:'short'})}</span>
+      </label>
+      <div class="day-row-meals" id="meals-${key}">
+        <label class="meal-check">
+          <input type="checkbox" name="meal_${key}" value="mittag" ${defaultMittag ? 'checked' : ''}>
+          Mittag
+        </label>
+        <label class="meal-check">
+          <input type="checkbox" name="meal_${key}" value="abend" ${defaultAbend ? 'checked' : ''}>
+          Abend
+        </label>
+      </div>`;
+    grid.appendChild(row);
+  }
+}
+
+function toggleDayRow(key, checked) {
+  const mealsDiv = document.getElementById(`meals-${key}`);
+  if (mealsDiv) {
+    mealsDiv.style.opacity = checked ? '1' : '.35';
+    mealsDiv.querySelectorAll('input[type=checkbox]').forEach(cb => cb.disabled = !checked);
+  }
+}
+
+// Grid beim Laden der Seite initialisieren
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('day-grid')) buildDayGrid();
+});
+
 // ── Slot Management (hinzufügen / bearbeiten / löschen) ───────────────────────
 
 let _slotModalMode = 'add'; // 'add' | 'edit'
