@@ -6,7 +6,13 @@
 <div class="recipe-detail">
 
   <div class="recipe-detail-header">
-    <a href="{{ url_for('recipes') }}" class="back-link">← Zurück zu Rezepten</a>
+    <a href="{{ url_for('recipes') }}" class="back-link" id="back-to-recipes">← Zurück zu Rezepten</a>
+    <script>
+      (function(){
+        var saved = sessionStorage.getItem('recipes_filter_url');
+        if (saved) document.getElementById('back-to-recipes').href = saved;
+      })();
+    </script>
     <div class="recipe-detail-title-row">
       <h1>{{ recipe.name }}</h1>
       <div class="recipe-detail-actions">
@@ -52,17 +58,17 @@
     <div class="info-box">
       <span class="info-icon">👥</span>
       <span class="info-val">{{ recipe.servings }}</span>
-      <span class="info-label">Personen</span>
+      <span class="info-label">Portionen</span>
     </div>
     <div class="info-box info-box--calories">
       <span class="info-icon">🔥</span>
       <span class="info-val">{{ recipe.nutrition_per_portion.calories }}</span>
-      <span class="info-label">kcal / Person</span>
+      <span class="info-label">kcal / Portion</span>
     </div>
     <div class="info-box info-box--protein">
       <span class="info-icon">💪</span>
       <span class="info-val">{{ recipe.nutrition_per_portion.protein }}g</span>
-      <span class="info-label">Protein / Person</span>
+      <span class="info-label">Protein / Portion</span>
     </div>
     <div class="info-box">
       <span class="info-icon">🍞</span>
@@ -155,17 +161,20 @@
     <div class="recipe-modify-section" id="modify-section">
       <div class="modify-header">
         <h2>✏️ Rezept anpassen</h2>
-        <p class="modify-subtitle">Lass die KI das Rezept nach deinen Wünschen anpassen – z.B. "ohne Fleisch", "statt Milch Sojamilch", "ohne Champignons"</p>
+        <p class="modify-subtitle">Lass die KI das Rezept nach deinen Wünschen anpassen – Änderungen werden direkt gespeichert. z.B. "ohne Fleisch", "statt Milch Sojamilch", "ohne Champignons"</p>
       </div>
       <div class="modify-input-row">
         <input type="text" id="modify-input" class="modify-input"
                placeholder="z.B. ohne Fleisch, vegetarisch, ohne Nüsse, statt Sahne Kokosmilch…"
                maxlength="200">
-        <button class="btn btn--primary" onclick="modifyRecipe('{{ recipe.id }}')">
-          ✨ Anpassen
+        <button class="btn btn--primary" id="modify-btn" onclick="modifyRecipe('{{ recipe.id }}')">
+          ✨ Anpassen &amp; Speichern
         </button>
       </div>
-      <div id="modify-result" class="modify-result" style="display:none"></div>
+      <div id="modify-status" style="display:none; color:var(--c-text-muted); font-size:.88rem; margin-top:8px;">
+        ⏳ KI passt Rezept an und speichert… (10–20 Sek.)
+      </div>
+      <div id="modify-error" style="display:none; color:#dc2626; font-size:.85rem; margin-top:8px;"></div>
     </div>
 
   </div>
@@ -201,13 +210,15 @@ async function loadInstructions(recipeId) {
 
 async function modifyRecipe(recipeId) {
   const input = document.getElementById('modify-input');
-  const result = document.getElementById('modify-result');
-  const btn = document.querySelector('#modify-section .btn--primary');
+  const btn = document.getElementById('modify-btn');
+  const status = document.getElementById('modify-status');
+  const errEl = document.getElementById('modify-error');
   const modification = input ? input.value.trim() : '';
   if (!modification) { input?.focus(); return; }
 
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ KI passt an…'; }
-  if (result) { result.style.display = 'block'; result.innerHTML = '<div class="loading-spinner">KI passt dein Rezept an…</div>'; }
+  if (btn) { btn.disabled = true; }
+  if (status) status.style.display = 'block';
+  if (errEl) errEl.style.display = 'none';
 
   try {
     const res = await fetch(`/api/recipe/${recipeId}/modify`, {
@@ -216,29 +227,18 @@ async function modifyRecipe(recipeId) {
       body: JSON.stringify({ modification })
     });
     const data = await res.json();
-    if (data.success) {
-      result.innerHTML = `
-        <div class="modify-result-box">
-          <h3>${data.title || 'Modifiziertes Rezept'}</h3>
-          ${data.note ? `<p class="modify-note">💡 ${data.note}</p>` : ''}
-          ${data.ingredients && data.ingredients.length ? `
-            <div class="modify-section-title">Zutaten:</div>
-            <ul class="modify-ing-list">
-              ${data.ingredients.map(i => `<li>${i}</li>`).join('')}
-            </ul>` : ''}
-          ${data.steps && data.steps.length ? `
-            <div class="modify-section-title">Zubereitung:</div>
-            <ol class="modify-steps-list">
-              ${data.steps.map(s => `<li>${s}</li>`).join('')}
-            </ol>` : ''}
-        </div>`;
+    if (data.success && data.redirect) {
+      window.location.href = data.redirect;
     } else {
-      result.innerHTML = `<p class="empty-hint">${data.error || 'KI-Anpassung fehlgeschlagen. Bitte prüfe das API-Guthaben.'}</p>`;
+      if (errEl) { errEl.textContent = data.error || 'KI-Anpassung fehlgeschlagen.'; errEl.style.display = 'block'; }
+      if (status) status.style.display = 'none';
+      if (btn) btn.disabled = false;
     }
   } catch(e) {
-    result.innerHTML = '<p class="empty-hint">Fehler bei der KI-Anfrage.</p>';
+    if (errEl) { errEl.textContent = 'Netzwerkfehler – bitte nochmal versuchen.'; errEl.style.display = 'block'; }
+    if (status) status.style.display = 'none';
+    if (btn) btn.disabled = false;
   }
-  if (btn) { btn.disabled = false; btn.textContent = '✨ Anpassen'; }
 }
 </script>
 {% endblock %}

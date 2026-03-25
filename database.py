@@ -586,6 +586,14 @@ def get_all_users() -> list:
     return users
 
 
+def get_admin_users() -> list:
+    """Gibt alle Nutzer mit Admin-Rechten zurück."""
+    conn = get_db()
+    users = _fetchall(conn, "SELECT id, email, name FROM users WHERE is_admin = 1")
+    conn.close()
+    return users
+
+
 def update_user_profile(user_id: int, name: str, email: str, is_admin: int, is_verified: int):
     conn = get_db()
     _exec(conn, f"""UPDATE users SET name={PH}, email={PH}, is_admin={PH}, is_verified={PH}

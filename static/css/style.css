@@ -1138,9 +1138,9 @@ details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
   .nav-inner { gap: 8px; }
   .nav-links { gap: 0; }
   .nav-link { font-size: .78rem; padding: 6px 8px; }
-  .nav-name { display: none; }
-  .nav-chevron { display: none; }
-  .nav-limits { display: none; }  /* Limits im Dropdown sichtbar */
+  .nav-name { display: none !important; }
+  .nav-chevron { display: none !important; }
+  .nav-limits { display: none !important; }  /* Limits im Dropdown sichtbar */
 }
 @media (max-width: 480px) {
   .nav-inner { padding: 0 10px; gap: 4px; height: 54px; }

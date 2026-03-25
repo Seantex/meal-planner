@@ -18,33 +18,33 @@
 
 <!-- KI-Rezept Modal -->
 <div id="ai-recipe-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
-     z-index:1000; align-items:center; justify-content:center; padding:20px;">
-  <div style="background:#fff; border-radius:16px; padding:32px; max-width:560px; width:100%;
-              box-shadow:0 20px 60px rgba(0,0,0,.25);">
-    <h2 style="margin:0 0 8px; font-size:1.3rem;">✨ Rezept per KI erstellen</h2>
-    <p style="color:var(--c-text-muted); font-size:.88rem; margin:0 0 20px;">
+     z-index:1000; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
+  <div style="background:#fff; border-radius:16px; padding:24px; max-width:560px; width:100%;
+              box-shadow:0 20px 60px rgba(0,0,0,.25); box-sizing:border-box; max-height:90vh; overflow-y:auto;">
+    <h2 style="margin:0 0 8px; font-size:1.2rem;">✨ Rezept per KI erstellen</h2>
+    <p style="color:var(--c-text-muted); font-size:.85rem; margin:0 0 16px;">
       Beschreibe was du möchtest – die KI erstellt ein vollständiges Rezept mit Zutaten &amp; Anleitung und speichert es dauerhaft.
     </p>
-    <input id="ai-recipe-wish" type="text" class="form-input" style="width:100%; margin-bottom:14px;"
+    <input id="ai-recipe-wish" type="text" class="form-input" style="width:100%; margin-bottom:12px; box-sizing:border-box;"
            placeholder="z.B. Big Mac Bowl, Teriyaki Chicken, Vegane Pasta Arrabiata…"
            maxlength="200" onkeydown="if(event.key==='Enter') startAiRecipe()">
-    <div style="display:flex; gap:10px; margin-bottom:14px;">
-      <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;cursor:pointer;">
+    <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;">
         <input type="radio" name="ai-slot-type" value="weekday" checked> ⚡ Wochentag (≤45min)
       </label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;cursor:pointer;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;">
         <input type="radio" name="ai-slot-type" value="weekend"> 🌟 Wochenende
       </label>
     </div>
-    <div id="ai-recipe-status" style="display:none; margin-bottom:14px; color:var(--c-text-muted);
-         font-size:.88rem; text-align:center;">
+    <div id="ai-recipe-status" style="display:none; margin-bottom:12px; color:var(--c-text-muted);
+         font-size:.85rem; text-align:center;">
       <span style="display:inline-block; width:16px; height:16px; border:2px solid var(--c-border);
            border-top-color:var(--c-primary); border-radius:50%; animation:spin .8s linear infinite;
            vertical-align:middle; margin-right:6px;"></span>
       KI generiert Rezept… (10–20 Sek.)
     </div>
-    <div id="ai-recipe-error" style="display:none; color:#dc2626; font-size:.85rem; margin-bottom:12px;"></div>
-    <div style="display:flex; gap:10px; justify-content:flex-end;">
+    <div id="ai-recipe-error" style="display:none; color:#dc2626; font-size:.85rem; margin-bottom:10px;"></div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
       <button class="btn btn--outline" onclick="document.getElementById('ai-recipe-modal').style.display='none'">
         Abbrechen
       </button>
@@ -147,19 +147,19 @@ document.getElementById('ai-recipe-modal').addEventListener('click', function(e)
       <div class="nutrition-filter-field">
         <label>Min. Protein (g/Portion)</label>
         <input type="number" name="min_protein" value="{{ min_protein }}" min="0" max="200"
-               class="form-control nutrition-filter-input" placeholder="z.B. 30"
+               class="form-input nutrition-filter-input" placeholder="z.B. 30"
                onchange="document.getElementById('recipe-filter-form').submit()">
       </div>
       <div class="nutrition-filter-field">
         <label>Min. Kalorien (kcal)</label>
         <input type="number" name="min_cal" value="{{ min_cal }}" min="0" max="2000"
-               class="form-control nutrition-filter-input" placeholder="z.B. 400"
+               class="form-input nutrition-filter-input" placeholder="z.B. 400"
                onchange="document.getElementById('recipe-filter-form').submit()">
       </div>
       <div class="nutrition-filter-field">
         <label>Max. Kalorien (kcal)</label>
         <input type="number" name="max_cal" value="{{ max_cal }}" min="0" max="2000"
-               class="form-control nutrition-filter-input" placeholder="z.B. 700"
+               class="form-input nutrition-filter-input" placeholder="z.B. 700"
                onchange="document.getElementById('recipe-filter-form').submit()">
       </div>
     </div>
@@ -167,6 +167,9 @@ document.getElementById('ai-recipe-modal').addEventListener('click', function(e)
 </form>
 
 <script>
+// Filter-URL im sessionStorage speichern (für Zurück-Button im Rezept-Detail)
+sessionStorage.setItem('recipes_filter_url', window.location.href);
+
 function toggleCat(cat) {
   const hiddenId = 'cat-hidden-' + cat;
   const existing = document.getElementById(hiddenId);

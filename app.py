@@ -688,12 +688,44 @@ Nur JSON, keine Erklärung."""
             model=CLAUDE_MODEL, max_tokens=1500,
             messages=[{"role": "user", "content": prompt}]
         )
-        import re as _re
         text = msg.content[0].text.strip()
-        match = _re.search(r'\{[\s\S]*\}', text)
+        match = re.search(r'\{[\s\S]*\}', text)
         if match:
             result = json.loads(match.group())
-            return jsonify({"success": True, **result})
+
+            # Zutaten aus KI-Antwort in Recipe-Format parsen
+            def _parse_ai_ing(raw):
+                t = raw.strip().lstrip("- ").strip()
+                m = re.match(r'^([\d.,/]+)\s*([a-zA-ZäöüÄÖÜß]+\.?)?\s+(.+)$', t)
+                if m:
+                    try:
+                        amt = float(m.group(1).replace(',', '.'))
+                    except Exception:
+                        amt = None
+                    return {"name": m.group(3).strip(), "amount": amt,
+                            "unit": m.group(2) or "", "is_basic": False}
+                return {"name": t, "amount": None, "unit": "", "is_basic": False}
+
+            # Modifiziertes Rezept aufbauen (original als Basis)
+            import copy
+            modified = copy.deepcopy(recipe)
+            if result.get("title"):
+                modified["name"] = result["title"]
+            if result.get("ingredients"):
+                modified["ingredients"] = [_parse_ai_ing(i) for i in result["ingredients"] if i.strip()]
+            if result.get("note"):
+                modified["tips"] = result["note"] + (" · " + modified.get("tips", "") if modified.get("tips") else "")
+
+            # Als Benutzer-Rezept speichern (überschreibt Basis-Rezept für diesen User)
+            db.save_user_recipe(_uid(), modified)
+            planner.invalidate_user_cache(_uid())
+
+            # Kochanleitung speichern falls vorhanden
+            if result.get("steps"):
+                db.save_instructions(recipe_id, result["steps"])
+
+            return jsonify({"success": True,
+                            "redirect": url_for("recipe_detail", recipe_id=recipe_id)})
     except Exception as e:
         print(f"[Claude] Modify error: {e}")
 
@@ -1426,6 +1458,25 @@ def admin_update_user(user_id):
         return jsonify({"success": True, "msg": "Plan-Limit zurückgesetzt"})
 
     return jsonify({"error": "Unbekannte Aktion"}), 400
+
+
+@app.route("/admin/setup")
+@login_required
+def admin_setup():
+    """Einmaliges Admin-Setup: Gibt dem ersten Nutzer Admin-Rechte,
+    falls noch kein echter Admin vorhanden ist."""
+    if _is_admin():
+        return redirect(url_for("admin_panel"))
+    admin_users = db.get_admin_users()
+    # Nur auto-erstellter System-Admin oder kein Admin → aktuellen User zum Admin machen
+    non_system = [u for u in admin_users if u.get("email") != "admin@mealplanner.at"]
+    if not non_system:
+        db.update_user_profile(current_user.id, current_user.name, current_user.email,
+                               is_admin=1, is_verified=1)
+        flash("✅ Admin-Rechte aktiviert! Du kannst jetzt das Admin-Panel nutzen.", "success")
+        return redirect(url_for("admin_panel"))
+    flash("Admin-Zugang existiert bereits. Bitte wende dich an einen bestehenden Admin.", "warning")
+    return redirect(url_for("index"))
 
 
 # ── Health-Check (für Uptime-Monitoring / Render Ping) ─────────────────────────
