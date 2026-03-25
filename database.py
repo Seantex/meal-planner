@@ -206,6 +206,9 @@ def init_db():
     # ── Schema-Migration (Single-User → Multi-User) ───────────────────────────
     _migrate_schema(c)
 
+    # ── Standard-Admin anlegen (falls noch keiner existiert) ──────────────────
+    _ensure_admin(c)
+
     conn.commit()
     conn.close()
 
@@ -265,6 +268,17 @@ def _migrate_schema(c):
         for r in old:
             c.execute("INSERT INTO week_plans (id,user_id,week_start,cravings,status,created_at) VALUES (?,1,?,?,?,?)",
                       (r[0], r[1], r[2], r[3], r[4]))
+
+
+def _ensure_admin(c):
+    """Legt den Standard-Admin an, falls noch kein Admin existiert."""
+    from werkzeug.security import generate_password_hash
+    existing = c.execute("SELECT id FROM users WHERE is_admin=1").fetchone()
+    if not existing:
+        pw_hash = generate_password_hash("MealAdmin2024!", method="pbkdf2:sha256")
+        c.execute("""INSERT OR IGNORE INTO users (email, name, password_hash, is_admin, is_verified)
+                     VALUES (?, ?, ?, 1, 1)""",
+                  ("admin@mealplanner.at", "Admin", pw_hash))
 
 
 # ── Benutzer ───────────────────────────────────────────────────────────────────
