@@ -155,8 +155,57 @@ def init_db():
         )
     """)
 
+    # ── Schema-Migration (Single-User → Multi-User) ───────────────────────────
+    _migrate_schema(c)
+
     conn.commit()
     conn.close()
+
+
+def _migrate_schema(c):
+    """Migriert alte Single-User-Tabellen auf das Multi-User-Schema."""
+    # favorites
+    fav_cols = [r[1] for r in c.execute("PRAGMA table_info(favorites)").fetchall()]
+    if fav_cols and "user_id" not in fav_cols:
+        old = c.execute("SELECT recipe_id, cook_count, last_cooked, added_at FROM favorites").fetchall()
+        c.execute("DROP TABLE favorites")
+        c.execute("""CREATE TABLE favorites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            recipe_id TEXT NOT NULL, cook_count INTEGER DEFAULT 1,
+            last_cooked TEXT, added_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(user_id, recipe_id))""")
+        for r in old:
+            c.execute("INSERT INTO favorites (user_id,recipe_id,cook_count,last_cooked,added_at) VALUES (1,?,?,?,?)",
+                      (r[0], r[1], r[2], r[3]))
+
+    # never_again
+    na_cols = [r[1] for r in c.execute("PRAGMA table_info(never_again)").fetchall()]
+    if na_cols and "user_id" not in na_cols:
+        old = c.execute("SELECT recipe_id, reason, added_at FROM never_again").fetchall()
+        c.execute("DROP TABLE never_again")
+        c.execute("""CREATE TABLE never_again (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            recipe_id TEXT NOT NULL, reason TEXT, added_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(user_id, recipe_id))""")
+        for r in old:
+            c.execute("INSERT INTO never_again (user_id,recipe_id,reason,added_at) VALUES (1,?,?,?)",
+                      (r[0], r[1], r[2]))
+
+    # week_plans
+    wp_cols = [r[1] for r in c.execute("PRAGMA table_info(week_plans)").fetchall()]
+    if wp_cols and "user_id" not in wp_cols:
+        old = c.execute("SELECT id, week_start, cravings, status, created_at FROM week_plans").fetchall()
+        c.execute("DROP TABLE week_plans")
+        c.execute("""CREATE TABLE week_plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            week_start TEXT NOT NULL, cravings TEXT,
+            status TEXT DEFAULT 'in_progress', created_at TEXT DEFAULT (datetime('now')))""")
+        for r in old:
+            c.execute("INSERT INTO week_plans (id,user_id,week_start,cravings,status,created_at) VALUES (?,1,?,?,?,?)",
+                      (r[0], r[1], r[2], r[3], r[4]))
 
 
 # ── Benutzer ───────────────────────────────────────────────────────────────────
