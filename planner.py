@@ -100,7 +100,11 @@ def generate_week_suggestions(plan_id: int, cravings: str = "", user_id: int = N
     # Global verwendete IDs über ALLE Slots tracken → keine Wiederholung
     all_used_ids: set = set()
 
-    for slot in MEAL_SLOTS:
+    plan_slots = db.get_plan_slots(plan_id)
+    for slot_row in plan_slots:
+        slot = {"id": slot_row["slot_id"], "label": slot_row["label"],
+                "type": slot_row["type"], "note": slot_row["note"],
+                "leftovers": bool(slot_row["leftovers"])}
         slot_id = slot["id"]
         slot_suggestions = suggestions_raw.get(slot_id, [])
 
@@ -511,8 +515,10 @@ def generate_shopping_list(plan_id: int, user_id: int = None) -> list:
     # Zutaten aggregieren
     aggregated: dict[str, dict] = {}
 
-    # Slot-Lookup für leftovers-Flag
-    slot_map = {s["id"]: s for s in MEAL_SLOTS}
+    # Slot-Lookup für leftovers-Flag (aus plan_slots oder MEAL_SLOTS als Fallback)
+    _ps = db.get_plan_slots(plan_id)
+    slot_map = {s["slot_id"]: {"id": s["slot_id"], "leftovers": bool(s["leftovers"]),
+                                "label": s["label"]} for s in _ps}
 
     for slot_id, recipe_id in selections.items():
         if recipe_id == "SKIPPED":
@@ -1057,7 +1063,10 @@ def get_weekly_nutrition(plan_id: int, user_id: int = None) -> dict:
     totals = {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
     per_day = []
 
-    for slot in MEAL_SLOTS:
+    plan_slots = db.get_plan_slots(plan_id)
+    for slot_row in plan_slots:
+        slot = {"id": slot_row["slot_id"], "label": slot_row["label"],
+                "leftovers": bool(slot_row["leftovers"])}
         recipe_id = selections.get(slot["id"])
         if not recipe_id or recipe_id == "SKIPPED":
             continue

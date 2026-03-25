@@ -35,27 +35,33 @@
   <div class="meal-card {% if selected %}meal-card--done{% endif %} {% if slot_data.skipped %}meal-card--skipped{% endif %} {% if slot_data.cooked %}meal-card--cooked{% endif %}"
        id="slot-{{ slot.id }}">
     <div class="meal-card-header">
-      <div class="meal-info">
+      <div class="meal-info" id="slot-label-wrap-{{ slot.id }}">
         <h3 class="meal-title">{{ slot.label }}</h3>
         <span class="meal-note">{{ slot.note }}</span>
       </div>
-      {% if slot_data.skipped %}
-        <span class="meal-status" style="color:var(--c-text-muted)">🚫 Übersprungen</span>
-        <button class="btn btn--ghost btn--xs skip-btn"
-                onclick="unskipSlot('{{ slot.id }}', {{ plan.id }})">Rückgängig</button>
-      {% elif selected %}
-        <span class="meal-status meal-status--done">✓ Gewählt</span>
-        <button class="btn btn--xs cooked-btn {% if slot_data.cooked %}cooked-btn--active{% endif %}"
-                id="cooked-btn-{{ slot.id }}"
-                onclick="toggleCooked('{{ slot.id }}', {{ plan.id }}, this)"
-                title="{% if slot_data.cooked %}Als nicht gekocht markieren{% else %}Als gekocht markieren{% endif %}">
-          {% if slot_data.cooked %}✅ Gekocht{% else %}☐ Gekocht{% endif %}
-        </button>
-      {% else %}
-        <span class="meal-status meal-status--open">Offen</span>
-        <button class="btn btn--ghost btn--xs skip-btn"
-                onclick="skipSlot('{{ slot.id }}', {{ plan.id }})">🚫 Überspringen</button>
-      {% endif %}
+      <div class="meal-card-actions">
+        {% if slot_data.skipped %}
+          <span class="meal-status" style="color:var(--c-text-muted)">🚫 Übersprungen</span>
+          <button class="btn btn--ghost btn--xs skip-btn"
+                  onclick="unskipSlot('{{ slot.id }}', {{ plan.id }})">Rückgängig</button>
+        {% elif selected %}
+          <span class="meal-status meal-status--done">✓ Gewählt</span>
+          <button class="btn btn--xs cooked-btn {% if slot_data.cooked %}cooked-btn--active{% endif %}"
+                  id="cooked-btn-{{ slot.id }}"
+                  onclick="toggleCooked('{{ slot.id }}', {{ plan.id }}, this)"
+                  title="{% if slot_data.cooked %}Als nicht gekocht markieren{% else %}Als gekocht markieren{% endif %}">
+            {% if slot_data.cooked %}✅ Gekocht{% else %}☐ Gekocht{% endif %}
+          </button>
+        {% else %}
+          <span class="meal-status meal-status--open">Offen</span>
+          <button class="btn btn--ghost btn--xs skip-btn"
+                  onclick="skipSlot('{{ slot.id }}', {{ plan.id }})">🚫 Überspringen</button>
+        {% endif %}
+        <button class="btn-icon slot-edit-btn" title="Umbenennen"
+                onclick="editSlot('{{ slot.id }}', {{ plan.id }}, '{{ slot.label|replace("'","\\\'") }}', '{{ slot.note|replace("'","\\\'") }}', {{ 1 if slot.leftovers else 0 }})">✏️</button>
+        <button class="btn-icon btn-icon--danger slot-del-btn" title="Slot entfernen"
+                onclick="deleteSlot('{{ slot.id }}', {{ plan.id }}, '{{ slot.label|replace("'","\\\'") }}')">🗑</button>
+      </div>
     </div>
 
     <!-- Ausgewähltes Rezept anzeigen -->
@@ -225,6 +231,34 @@
   {% else %}
   <p class="plan-footer-hint">Noch {{ total - completed }} Gericht(e) ausstehend</p>
   {% endif %}
+</div>
+
+<!-- Slot hinzufügen -->
+<div class="add-slot-bar">
+  <button class="btn btn--outline" onclick="openAddSlot()">＋ Tag / Mahlzeit hinzufügen</button>
+</div>
+
+<!-- Slot bearbeiten / hinzufügen Modal -->
+<div id="slot-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3 id="slot-modal-title">Mahlzeit bearbeiten</h3>
+    <div class="form-group">
+      <label class="form-label">Bezeichnung <span style="color:var(--c-text-muted);font-weight:400">(z.B. Mittwoch Abend)</span></label>
+      <input type="text" id="slot-modal-label" class="form-input" placeholder="Mittwoch Abend" maxlength="60">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notiz <span style="color:var(--c-text-muted);font-weight:400">(optional)</span></label>
+      <input type="text" id="slot-modal-note" class="form-input" placeholder="z.B. Reste → nächster Tag" maxlength="80">
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+      <input type="checkbox" id="slot-modal-leftovers" style="width:auto;">
+      <label for="slot-modal-leftovers" style="margin:0;font-weight:400;cursor:pointer;">Reste für nächsten Tag einplanen</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn--primary" onclick="confirmSlotModal()">Speichern</button>
+      <button class="btn btn--outline" onclick="closeSlotModal()">Abbrechen</button>
+    </div>
+  </div>
 </div>
 
 <!-- Never-Again Modal -->

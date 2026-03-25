@@ -1024,6 +1024,10 @@ a:hover { text-decoration: underline; }
 .meal-card--skipped { opacity: .6; }
 .meal-card--skipped .meal-card-header { text-decoration: line-through; }
 .skip-btn { color: var(--c-text-muted); font-size: .75rem; }
+.meal-card-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.slot-edit-btn, .slot-del-btn { font-size: .85rem; opacity: .5; transition: opacity var(--transition); }
+.slot-edit-btn:hover, .slot-del-btn:hover { opacity: 1; }
+.add-slot-bar { text-align: center; margin: 18px 0 8px; }
 .meal-card--cooked { opacity: .7; }
 .meal-card--cooked::after {
   content: '✅ Gekocht';

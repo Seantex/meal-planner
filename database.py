@@ -1,7 +1,7 @@
 import sqlite3
 import json
 from datetime import datetime, date
-from config import DB_PATH
+from config import DB_PATH, MEAL_SLOTS
 
 
 def get_db():
@@ -163,6 +163,21 @@ def init_db():
             meal_slot TEXT    NOT NULL,
             portions  INTEGER NOT NULL DEFAULT 2,
             PRIMARY KEY (plan_id, meal_slot)
+        )
+    """)
+
+    # ── Plan-spezifische Slots (anpassbar) ───────────────────────────────────
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS plan_slots (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id    INTEGER NOT NULL REFERENCES week_plans(id) ON DELETE CASCADE,
+            slot_id    TEXT    NOT NULL,
+            label      TEXT    NOT NULL,
+            type       TEXT    DEFAULT 'weekday',
+            note       TEXT    DEFAULT '',
+            leftovers  INTEGER DEFAULT 0,
+            sort_order INTEGER DEFAULT 0,
+            UNIQUE(plan_id, slot_id)
         )
     """)
 
@@ -497,6 +512,14 @@ def create_week_plan(week_start: str, cravings: str = "", user_id: int = 1, defa
         INSERT INTO week_plans (user_id, week_start, cravings, default_persons) VALUES (?, ?, ?, ?)
     """, (user_id, week_start, cravings, default_persons))
     plan_id = cur.lastrowid
+    # Standard-Slots aus config.py kopieren
+    for i, slot in enumerate(MEAL_SLOTS):
+        conn.execute("""
+            INSERT OR IGNORE INTO plan_slots
+                (plan_id, slot_id, label, type, note, leftovers, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (plan_id, slot["id"], slot["label"], slot.get("type", "weekday"),
+              slot.get("note", ""), int(slot.get("leftovers", False)), i))
     conn.commit()
     conn.close()
     return plan_id
@@ -802,6 +825,66 @@ def get_cooked_slots(plan_id: int) -> set:
     rows = conn.execute("SELECT meal_slot FROM slot_cooked WHERE plan_id = ?", (plan_id,)).fetchall()
     conn.close()
     return {r["meal_slot"] for r in rows}
+
+
+# ── Plan-Slots (anpassbar) ──────────────────────────────────────────────────────
+
+def get_plan_slots(plan_id: int) -> list:
+    """Gibt die Slots eines Plans zurück, sortiert nach sort_order."""
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT slot_id, label, type, note, leftovers, sort_order
+        FROM plan_slots WHERE plan_id = ?
+        ORDER BY sort_order ASC, id ASC
+    """, (plan_id,)).fetchall()
+    conn.close()
+    if rows:
+        return [dict(r) for r in rows]
+    # Fallback: falls noch keine plan_slots (alter Plan), Standard-Slots zurückgeben
+    return [{"slot_id": s["id"], "label": s["label"], "type": s.get("type","weekday"),
+             "note": s.get("note",""), "leftovers": int(s.get("leftovers", False)),
+             "sort_order": i}
+            for i, s in enumerate(MEAL_SLOTS)]
+
+
+def add_plan_slot(plan_id: int, label: str, note: str = "", leftovers: bool = False) -> str:
+    """Fügt einen neuen Slot hinzu. Gibt die neue slot_id zurück."""
+    import re, time
+    # Eindeutige ID aus dem Label generieren
+    base = re.sub(r"[^a-z0-9]+", "_", label.lower().strip())[:20]
+    slot_id = f"{base}_{int(time.time()) % 10000}"
+    conn = get_db()
+    max_order = conn.execute(
+        "SELECT COALESCE(MAX(sort_order),0) FROM plan_slots WHERE plan_id = ?", (plan_id,)
+    ).fetchone()[0]
+    conn.execute("""
+        INSERT INTO plan_slots (plan_id, slot_id, label, type, note, leftovers, sort_order)
+        VALUES (?, ?, ?, 'weekday', ?, ?, ?)
+    """, (plan_id, slot_id, label.strip(), note.strip(), int(leftovers), max_order + 1))
+    conn.commit()
+    conn.close()
+    return slot_id
+
+
+def remove_plan_slot(plan_id: int, slot_id: str):
+    conn = get_db()
+    conn.execute("DELETE FROM plan_slots WHERE plan_id = ? AND slot_id = ?", (plan_id, slot_id))
+    # Zugehörige Auswahl und Einstellungen ebenfalls löschen
+    conn.execute("DELETE FROM meal_selections WHERE plan_id = ? AND meal_slot = ?", (plan_id, slot_id))
+    conn.execute("DELETE FROM slot_settings WHERE plan_id = ? AND meal_slot = ?", (plan_id, slot_id))
+    conn.execute("DELETE FROM slot_cooked WHERE plan_id = ? AND meal_slot = ?", (plan_id, slot_id))
+    conn.commit()
+    conn.close()
+
+
+def update_plan_slot(plan_id: int, slot_id: str, label: str, note: str = "", leftovers: bool = False):
+    conn = get_db()
+    conn.execute("""
+        UPDATE plan_slots SET label = ?, note = ?, leftovers = ?
+        WHERE plan_id = ? AND slot_id = ?
+    """, (label.strip(), note.strip(), int(leftovers), plan_id, slot_id))
+    conn.commit()
+    conn.close()
 
 
 def toggle_slot_cooked(plan_id: int, meal_slot: str) -> bool:

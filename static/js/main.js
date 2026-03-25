@@ -510,6 +510,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeNeverModal();
     closeNoteEditor();
+    closeSlotModal();
+  }
+  if (e.key === 'Enter' && document.activeElement?.closest('#slot-modal')) {
+    confirmSlotModal();
   }
   // Enter in note input → speichern
   if (e.key === 'Enter' && document.activeElement?.id === 'note-input') {
@@ -527,6 +531,10 @@ document.addEventListener('click', e => {
   if (noteEditor && !noteEditor.classList.contains('hidden')) {
     if (e.target === noteEditor) closeNoteEditor();
   }
+  const slotModal = document.getElementById('slot-modal');
+  if (slotModal && !slotModal.classList.contains('hidden')) {
+    if (e.target === slotModal) closeSlotModal();
+  }
 });
 
 // Flash messages auto-dismiss
@@ -537,6 +545,104 @@ setTimeout(() => {
     setTimeout(() => f.remove(), 400);
   });
 }, 5000);
+
+// ── Slot Management (hinzufügen / bearbeiten / löschen) ───────────────────────
+
+let _slotModalMode = 'add'; // 'add' | 'edit'
+let _slotEditId = null;
+let _slotEditPlanId = null;
+
+function openAddSlot() {
+  _slotModalMode = 'add';
+  _slotEditId = null;
+  _slotEditPlanId = typeof PLAN_ID !== 'undefined' ? PLAN_ID : null;
+  const modal = document.getElementById('slot-modal');
+  document.getElementById('slot-modal-title').textContent = 'Mahlzeit hinzufügen';
+  document.getElementById('slot-modal-label').value = '';
+  document.getElementById('slot-modal-note').value = '';
+  document.getElementById('slot-modal-leftovers').checked = false;
+  modal?.classList.remove('hidden');
+  document.getElementById('slot-modal-label')?.focus();
+}
+
+function editSlot(slotId, planId, currentLabel, currentNote, currentLeftovers) {
+  _slotModalMode = 'edit';
+  _slotEditId = slotId;
+  _slotEditPlanId = planId;
+  document.getElementById('slot-modal-title').textContent = 'Mahlzeit umbenennen';
+  document.getElementById('slot-modal-label').value = currentLabel;
+  document.getElementById('slot-modal-note').value = currentNote || '';
+  document.getElementById('slot-modal-leftovers').checked = !!currentLeftovers;
+  document.getElementById('slot-modal')?.classList.remove('hidden');
+  document.getElementById('slot-modal-label')?.focus();
+}
+
+async function confirmSlotModal() {
+  const label = document.getElementById('slot-modal-label')?.value?.trim();
+  const note  = document.getElementById('slot-modal-note')?.value?.trim() || '';
+  const leftovers = document.getElementById('slot-modal-leftovers')?.checked || false;
+  if (!label) {
+    document.getElementById('slot-modal-label')?.focus();
+    return;
+  }
+  const planId = _slotEditPlanId || (typeof PLAN_ID !== 'undefined' ? PLAN_ID : null);
+  if (!planId) return;
+
+  if (_slotModalMode === 'add') {
+    const data = await apiPost(`/plan/${planId}/slots`, { label, note, leftovers });
+    if (data.success) {
+      closeSlotModal();
+      location.reload();
+    } else {
+      showToast(data.error || 'Fehler', 'error');
+    }
+  } else {
+    const res = await fetch(`/plan/${planId}/slots/${_slotEditId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label, note, leftovers }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Label im DOM direkt aktualisieren
+      const wrap = document.getElementById(`slot-label-wrap-${_slotEditId}`);
+      if (wrap) {
+        const h3 = wrap.querySelector('.meal-title');
+        const noteEl = wrap.querySelector('.meal-note');
+        if (h3) h3.textContent = label;
+        if (noteEl) noteEl.textContent = note;
+      }
+      closeSlotModal();
+      showToast('✓ Bezeichnung gespeichert');
+    } else {
+      showToast(data.error || 'Fehler', 'error');
+    }
+  }
+}
+
+async function deleteSlot(slotId, planId, slotLabel) {
+  if (!confirm(`Mahlzeit "${slotLabel}" wirklich entfernen?\nDie Rezeptauswahl für diesen Slot geht verloren.`)) return;
+  const res = await fetch(`/plan/${planId}/slots/${slotId}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    const card = document.getElementById(`slot-${slotId}`);
+    if (card) {
+      card.style.transition = 'opacity .3s, max-height .4s';
+      card.style.opacity = '0';
+      card.style.overflow = 'hidden';
+      setTimeout(() => { card.remove(); updateProgress(); }, 350);
+    }
+    showToast('🗑 Mahlzeit entfernt');
+  } else {
+    showToast('Fehler beim Entfernen', 'error');
+  }
+}
+
+function closeSlotModal() {
+  document.getElementById('slot-modal')?.classList.add('hidden');
+  _slotEditId = null;
+  _slotEditPlanId = null;
+}
 
 // ── Gekocht-Abhaken ────────────────────────────────────────────────────────────
 

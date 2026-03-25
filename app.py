@@ -306,9 +306,13 @@ def planning(plan_id):
     default_persons = db.get_default_persons(plan_id)
     slot_portions_map = db.get_all_slot_portions(plan_id)
     cooked_slots = db.get_cooked_slots(plan_id)
+    plan_slots = db.get_plan_slots(plan_id)
 
     slots_data = []
-    for slot in MEAL_SLOTS:
+    for slot_row in plan_slots:
+        slot = {"id": slot_row["slot_id"], "label": slot_row["label"],
+                "type": slot_row.get("type","weekday"), "note": slot_row.get("note",""),
+                "leftovers": bool(slot_row["leftovers"])}
         sid = slot["id"]
         raw_suggestions = all_suggestions.get(sid, [])
         portions = db.get_slot_portions(plan_id, sid, default_persons, slot.get("leftovers", False))
@@ -471,6 +475,49 @@ def toggle_cooked(plan_id, meal_slot):
         return jsonify({"error": "Nicht gefunden"}), 404
     cooked = db.toggle_slot_cooked(plan_id, meal_slot)
     return jsonify({"success": True, "cooked": cooked})
+
+
+@app.route("/plan/<int:plan_id>/slots", methods=["POST"])
+@login_required
+def add_plan_slot(plan_id):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    data = request.get_json(silent=True) or {}
+    label = (data.get("label") or "").strip()
+    if not label:
+        return jsonify({"error": "Label erforderlich"}), 400
+    note = (data.get("note") or "").strip()
+    leftovers = bool(data.get("leftovers", False))
+    slot_id = db.add_plan_slot(plan_id, label, note=note, leftovers=leftovers)
+    return jsonify({"success": True, "slot_id": slot_id, "label": label,
+                    "note": note, "leftovers": leftovers})
+
+
+@app.route("/plan/<int:plan_id>/slots/<meal_slot>", methods=["DELETE"])
+@login_required
+def remove_plan_slot(plan_id, meal_slot):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    db.remove_plan_slot(plan_id, meal_slot)
+    return jsonify({"success": True})
+
+
+@app.route("/plan/<int:plan_id>/slots/<meal_slot>", methods=["PATCH"])
+@login_required
+def update_plan_slot(plan_id, meal_slot):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    data = request.get_json(silent=True) or {}
+    label = (data.get("label") or "").strip()
+    if not label:
+        return jsonify({"error": "Label erforderlich"}), 400
+    note = (data.get("note") or "").strip()
+    leftovers = bool(data.get("leftovers", False))
+    db.update_plan_slot(plan_id, meal_slot, label, note=note, leftovers=leftovers)
+    return jsonify({"success": True, "label": label, "note": note, "leftovers": leftovers})
 
 
 @app.route("/plan/<int:plan_id>/regenerate/<meal_slot>", methods=["POST"])
