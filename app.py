@@ -16,7 +16,11 @@ import database as db
 import planner
 from scraper.manager import scrape_all_deals, parse_pdf_deals, try_download_pdf_from_web, FLYER_URLS
 from config import (SECRET_KEY, DEBUG, UPLOADS_DIR, MEAL_SLOTS,
-                    BUDGET_WARNING, ANTHROPIC_API_KEY, RECIPES_PATH)
+                    BUDGET_WARNING, ANTHROPIC_API_KEY, RECIPES_PATH,
+                    MAIL_SERVER, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM, APP_URL)
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -118,7 +122,19 @@ def register():
         user_id = db.create_user(email, name, pw_hash)
         user_data = db.get_user_by_id(user_id)
         login_user(User(user_data), remember=True)
-        flash(f"Willkommen, {name}! Dein Konto wurde erstellt.", "success")
+        # Verifikations-E-Mail senden
+        token = db.create_email_token(user_id, "verify")
+        verify_url = f"{APP_URL}/verify-email/{token}"
+        _send_mail(
+            email,
+            "Meal Planner – E-Mail bestätigen",
+            f"""<p>Hallo {name},</p>
+<p>Bitte bestätige deine E-Mail-Adresse durch Klicken auf diesen Link:</p>
+<p><a href="{verify_url}">{verify_url}</a></p>
+<p>Der Link ist 24 Stunden gültig.</p>
+<p>Meal Planner Team</p>"""
+        )
+        flash(f"Willkommen, {name}! Bitte bestätige deine E-Mail-Adresse (Link wurde gesendet an {email}).", "success")
         return redirect(url_for("index"))
 
     return render_template("register.html")
@@ -254,7 +270,8 @@ def new_plan():
 
     cravings = request.form.get("cravings", "").strip()
     week_start = _current_week_start()
-    plan_id = db.create_week_plan(week_start, cravings, _uid())
+    default_persons = max(1, min(10, int(request.form.get("default_persons", 2) or 2)))
+    plan_id = db.create_week_plan(week_start, cravings, _uid(), default_persons=default_persons)
     db.increment_ai_usage(_uid(), "plan")
 
     try:
@@ -281,12 +298,14 @@ def planning(plan_id):
     favorites = [f["recipe_id"] for f in db.get_favorites(_uid())]
     never_again = [n["recipe_id"] for n in db.get_never_again(_uid())]
     deals = db.get_deals()
+    default_persons = db.get_default_persons(plan_id)
+    slot_portions_map = db.get_all_slot_portions(plan_id)
 
     slots_data = []
     for slot in MEAL_SLOTS:
         sid = slot["id"]
         raw_suggestions = all_suggestions.get(sid, [])
-        portions = 3 if slot.get("leftovers") else 2
+        portions = db.get_slot_portions(plan_id, sid, default_persons, slot.get("leftovers", False))
 
         suggestions_with_recipes = []
         for s in raw_suggestions:
@@ -316,6 +335,7 @@ def planning(plan_id):
             "selected_recipe_id": sel_id,
             "selected_recipe": planner.get_recipe(sel_id, user_id=_uid()) if sel_id and sel_id != "SKIPPED" else None,
             "skipped": sel_id == "SKIPPED",
+            "portions": portions,
         })
 
     completed = sum(1 for s in slots_data if s["selected_recipe_id"])
@@ -328,6 +348,8 @@ def planning(plan_id):
         completed=completed,
         total=total,
         progress_pct=int(completed / total * 100),
+        default_persons=default_persons,
+        slot_portions_map=slot_portions_map,
     )
 
 
@@ -366,6 +388,10 @@ def wish_recipe(plan_id, meal_slot):
     if not plan:
         return jsonify({"error": "Plan nicht gefunden"}), 404
 
+    # Per-Slot-Limit: 1 KI-Wunschrezept pro Slot pro Woche
+    if not db.can_use_ai(_uid(), f"wish_{meal_slot}", _is_admin()):
+        return jsonify({"error": "Du hast für diesen Tag bereits ein KI-Wunschrezept erstellt. Das Limit ist 1 pro Slot pro Woche."}), 429
+
     data = request.get_json(silent=True) or {}
     wish = data.get("wish", "").strip()
     if not wish:
@@ -378,6 +404,7 @@ def wish_recipe(plan_id, meal_slot):
     if not recipe:
         return jsonify({"error": "KI konnte kein Rezept generieren. Bitte erneut versuchen."}), 500
 
+    db.increment_ai_usage(_uid(), f"wish_{meal_slot}")
     portions = 3 if (slot_obj or {}).get("leftovers") else 2
     cost = planner.estimate_recipe_cost(recipe, db.get_deals(), portions)
 
@@ -403,6 +430,30 @@ def unskip_slot(plan_id, meal_slot):
     conn.commit()
     conn.close()
     return jsonify({"success": True})
+
+
+@app.route("/plan/<int:plan_id>/persons", methods=["POST"])
+@login_required
+def set_plan_persons(plan_id):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    persons = request.json.get("persons", 2)
+    persons = max(1, min(10, int(persons)))
+    db.set_default_persons(plan_id, persons)
+    return jsonify({"success": True, "persons": persons})
+
+
+@app.route("/plan/<int:plan_id>/slot-portions/<meal_slot>", methods=["POST"])
+@login_required
+def set_slot_portions(plan_id, meal_slot):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    portions = request.json.get("portions", 2)
+    portions = max(1, min(10, int(portions)))
+    db.set_slot_portions(plan_id, meal_slot, portions)
+    return jsonify({"success": True, "portions": portions})
 
 
 @app.route("/plan/<int:plan_id>/regenerate/<meal_slot>", methods=["POST"])
@@ -1096,6 +1147,80 @@ def _parse_ingredients_from_form(form):
             "is_basic": str(i) in basic_indices,
         })
     return ingredients
+
+
+def _send_mail(to: str, subject: str, html_body: str):
+    """Sendet eine E-Mail. Wenn SMTP nicht konfiguriert, wird der Link geloggt."""
+    if not MAIL_USERNAME or not MAIL_PASSWORD:
+        print(f"[Mail – kein SMTP konfiguriert] An: {to}\nBetreff: {subject}\n{html_body[:300]}")
+        return
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = MAIL_FROM
+        msg["To"] = to
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+        with smtplib.SMTP(MAIL_SERVER, MAIL_PORT, timeout=10) as srv:
+            srv.starttls()
+            srv.login(MAIL_USERNAME, MAIL_PASSWORD)
+            srv.sendmail(MAIL_FROM, to, msg.as_string())
+    except Exception as e:
+        print(f"[Mail Fehler] {e}")
+
+
+@app.route("/verify-email/<token>")
+def verify_email(token):
+    user_id = db.verify_email_token(token, "verify")
+    if not user_id:
+        flash("Der Link ist ungültig oder abgelaufen.", "error")
+        return redirect(url_for("login"))
+    db.set_user_verified(user_id)
+    flash("E-Mail erfolgreich bestätigt! Du kannst dich jetzt anmelden.", "success")
+    return redirect(url_for("login"))
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        user_data = db.get_user_by_email(email)
+        if user_data:
+            token = db.create_email_token(user_data["id"], "reset")
+            reset_url = f"{APP_URL}/reset-password/{token}"
+            _send_mail(
+                email,
+                "Meal Planner – Passwort zurücksetzen",
+                f"""<p>Hallo {user_data['name']},</p>
+<p>Klicke auf diesen Link um dein Passwort zurückzusetzen:</p>
+<p><a href="{reset_url}">{reset_url}</a></p>
+<p>Der Link ist 24 Stunden gültig. Falls du kein Reset angefordert hast, ignoriere diese Mail.</p>
+<p>Meal Planner Team</p>"""
+            )
+        # Immer gleiche Meldung (verhindert E-Mail-Enumeration)
+        flash("Falls diese E-Mail registriert ist, wurde ein Link gesendet.", "info")
+        return redirect(url_for("login"))
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    if request.method == "POST":
+        pw = request.form.get("password", "")
+        pw2 = request.form.get("password2", "")
+        if len(pw) < 6:
+            flash("Passwort muss mindestens 6 Zeichen haben.", "error")
+            return render_template("reset_password.html", token=token)
+        if pw != pw2:
+            flash("Passwörter stimmen nicht überein.", "error")
+            return render_template("reset_password.html", token=token)
+        user_id = db.verify_email_token(token, "reset")
+        if not user_id:
+            flash("Der Link ist ungültig oder abgelaufen. Bitte neu anfordern.", "error")
+            return redirect(url_for("forgot_password"))
+        db.update_user_password(user_id, generate_password_hash(pw, method="pbkdf2:sha256"))
+        flash("Passwort erfolgreich geändert! Du kannst dich jetzt anmelden.", "success")
+        return redirect(url_for("login"))
+    return render_template("reset_password.html", token=token)
 
 
 if __name__ == "__main__":

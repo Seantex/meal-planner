@@ -174,6 +174,17 @@
         {% endif %}
       </div>
 
+      <!-- Portionen pro Slot -->
+      <div class="portions-bar">
+        <span class="portions-label">🍽️ Portionen:</span>
+        <button class="portions-btn" onclick="changePortions('{{ slot.id }}', {{ plan.id }}, -1, this)">−</button>
+        <span class="portions-val" id="portions-val-{{ slot.id }}">{{ slot_data.portions }}</span>
+        <button class="portions-btn" onclick="changePortions('{{ slot.id }}', {{ plan.id }}, 1, this)">+</button>
+        {% if slot.leftovers %}
+          <span class="portions-hint">inkl. Reste für morgen</span>
+        {% endif %}
+      </div>
+
       <!-- Wunsch-Feld pro Slot -->
       <div class="wish-bar">
         <input type="text"

@@ -504,6 +504,10 @@ def generate_shopping_list(plan_id: int, user_id: int = None) -> list:
     deals = db.get_deals()
     deal_lookup = _build_deal_lookup(deals)
 
+    # Portionen pro Slot aus DB holen
+    plan = db.get_plan(plan_id)
+    default_persons = db.get_default_persons(plan_id) if plan else 2
+
     # Zutaten aggregieren
     aggregated: dict[str, dict] = {}
 
@@ -517,10 +521,11 @@ def generate_shopping_list(plan_id: int, user_id: int = None) -> list:
         if not recipe:
             continue
 
-        # So-Do: 3 Portionen kochen (2 Abend + 1 Mittagessen nächster Tag)
-        # Fr-Sa: 2 Portionen (nur Abendessen)
+        # Portionen aus DB holen (berücksichtigt default_persons und slot-spezifische Overrides)
         slot_info = slot_map.get(slot_id, {})
-        portion_factor = 1.5 if slot_info.get("leftovers", False) else 1.0
+        slot_portions = db.get_slot_portions(plan_id, slot_id, default_persons, slot_info.get("leftovers", False))
+        recipe_servings = recipe.get("servings", 2) or 2
+        portion_factor = slot_portions / recipe_servings
 
         for ing in recipe.get("ingredients", []):
             if ing.get("is_basic"):

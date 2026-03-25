@@ -18,12 +18,13 @@ def init_db():
     # ── Benutzer ───────────────────────────────────────────────────────────────
     c.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            email        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-            name         TEXT    NOT NULL,
-            password_hash TEXT   NOT NULL,
-            is_admin     INTEGER DEFAULT 0,
-            created_at   TEXT    DEFAULT (datetime('now'))
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            email         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+            name          TEXT    NOT NULL,
+            password_hash TEXT    NOT NULL,
+            is_admin      INTEGER DEFAULT 0,
+            is_verified   INTEGER DEFAULT 0,
+            created_at    TEXT    DEFAULT (datetime('now'))
         )
     """)
 
@@ -73,12 +74,13 @@ def init_db():
     # ── Wochenpläne ────────────────────────────────────────────────────────────
     c.execute("""
         CREATE TABLE IF NOT EXISTS week_plans (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            week_start  TEXT NOT NULL,
-            cravings    TEXT,
-            status      TEXT DEFAULT 'in_progress',
-            created_at  TEXT DEFAULT (datetime('now'))
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            week_start     TEXT NOT NULL,
+            cravings       TEXT,
+            status         TEXT DEFAULT 'in_progress',
+            default_persons INTEGER DEFAULT 2,
+            created_at     TEXT DEFAULT (datetime('now'))
         )
     """)
 
@@ -143,15 +145,36 @@ def init_db():
     """)
 
     # ── KI-Nutzungslimits ─────────────────────────────────────────────────────
-    # Trackt pro User + Woche wie viele KI-Rezepte generiert wurden
     c.execute("""
         CREATE TABLE IF NOT EXISTS ai_usage (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            usage_type  TEXT    NOT NULL,  -- 'recipe' oder 'plan'
-            week_start  TEXT    NOT NULL,  -- ISO-Datum Montag der Woche
+            usage_type  TEXT    NOT NULL,
+            week_start  TEXT    NOT NULL,
             count       INTEGER DEFAULT 0,
             UNIQUE(user_id, usage_type, week_start)
+        )
+    """)
+
+    # ── Portionen pro Slot ─────────────────────────────────────────────────────
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS slot_settings (
+            plan_id   INTEGER NOT NULL REFERENCES week_plans(id) ON DELETE CASCADE,
+            meal_slot TEXT    NOT NULL,
+            portions  INTEGER NOT NULL DEFAULT 2,
+            PRIMARY KEY (plan_id, meal_slot)
+        )
+    """)
+
+    # ── E-Mail-Tokens (Verifikation & Passwort-Reset) ─────────────────────────
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS email_tokens (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token      TEXT    NOT NULL UNIQUE,
+            token_type TEXT    NOT NULL,
+            expires_at TEXT    NOT NULL,
+            created_at TEXT    DEFAULT (datetime('now'))
         )
     """)
 
@@ -193,8 +216,19 @@ def _migrate_schema(c):
             c.execute("INSERT INTO never_again (user_id,recipe_id,reason,added_at) VALUES (1,?,?,?)",
                       (r[0], r[1], r[2]))
 
-    # week_plans
+    # users: is_verified hinzufügen falls fehlt
+    u_cols = [r[1] for r in c.execute("PRAGMA table_info(users)").fetchall()]
+    if u_cols and "is_verified" not in u_cols:
+        c.execute("ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0")
+        # Bestehende User (admin) als verifiziert markieren
+        c.execute("UPDATE users SET is_verified = 1")
+
+    # week_plans: default_persons hinzufügen falls fehlt
     wp_cols = [r[1] for r in c.execute("PRAGMA table_info(week_plans)").fetchall()]
+    if wp_cols and "default_persons" not in wp_cols:
+        c.execute("ALTER TABLE week_plans ADD COLUMN default_persons INTEGER DEFAULT 2")
+
+    # week_plans: user_id Migration
     if wp_cols and "user_id" not in wp_cols:
         old = c.execute("SELECT id, week_start, cravings, status, created_at FROM week_plans").fetchall()
         c.execute("DROP TABLE week_plans")
@@ -247,7 +281,8 @@ def email_exists(email: str) -> bool:
 
 LIMITS = {
     "recipe": 3,   # 3 KI-Rezepte pro Woche
-    "plan":   5,   # 5 Wochenplan-Generierungen pro Woche
+    "plan":   1,   # 1 Wochenplan pro Woche
+    # wish_<slot_id>: 1 pro Slot pro Woche (dynamisch vergeben)
 }
 
 
@@ -272,7 +307,11 @@ def get_ai_remaining(user_id: int, usage_type: str, is_admin: bool = False) -> i
     """Gibt die verbleibenden Nutzungen zurück. Admins haben unbegrenzt."""
     if is_admin:
         return 999
-    limit = LIMITS.get(usage_type, 0)
+    # wish_<slot> hat ein Limit von 1
+    if usage_type.startswith("wish_"):
+        limit = 1
+    else:
+        limit = LIMITS.get(usage_type, 0)
     used = get_ai_usage(user_id, usage_type)
     return max(0, limit - used)
 
@@ -442,11 +481,11 @@ def deals_are_fresh() -> bool:
 
 # ── Wochenplan ─────────────────────────────────────────────────────────────────
 
-def create_week_plan(week_start: str, cravings: str = "", user_id: int = 1) -> int:
+def create_week_plan(week_start: str, cravings: str = "", user_id: int = 1, default_persons: int = 2) -> int:
     conn = get_db()
     cur = conn.execute("""
-        INSERT INTO week_plans (user_id, week_start, cravings) VALUES (?, ?, ?)
-    """, (user_id, week_start, cravings))
+        INSERT INTO week_plans (user_id, week_start, cravings, default_persons) VALUES (?, ?, ?, ?)
+    """, (user_id, week_start, cravings, default_persons))
     plan_id = cur.lastrowid
     conn.commit()
     conn.close()
@@ -638,3 +677,109 @@ def get_all_suggestions(plan_id: int) -> dict:
     """, (plan_id,)).fetchall()
     conn.close()
     return {r["meal_slot"]: json.loads(r["suggestions"]) for r in rows}
+
+
+# ── Portionen ──────────────────────────────────────────────────────────────────
+
+def get_default_persons(plan_id: int) -> int:
+    conn = get_db()
+    r = conn.execute("SELECT default_persons FROM week_plans WHERE id = ?", (plan_id,)).fetchone()
+    conn.close()
+    return (r["default_persons"] if r and r["default_persons"] else 2)
+
+
+def set_default_persons(plan_id: int, persons: int):
+    conn = get_db()
+    conn.execute("UPDATE week_plans SET default_persons = ? WHERE id = ?", (persons, plan_id))
+    conn.commit()
+    conn.close()
+
+
+def get_slot_portions(plan_id: int, meal_slot: str, default_persons: int = 2, leftovers: bool = False) -> int:
+    """Gibt die Portionen für einen Slot zurück (Override oder Standard)."""
+    conn = get_db()
+    r = conn.execute(
+        "SELECT portions FROM slot_settings WHERE plan_id = ? AND meal_slot = ?",
+        (plan_id, meal_slot)
+    ).fetchone()
+    conn.close()
+    if r:
+        return r["portions"]
+    # Standard: bei Leftovers-Slots = persons * 1.5 aufgerundet
+    if leftovers:
+        return max(2, round(default_persons * 1.5))
+    return default_persons
+
+
+def set_slot_portions(plan_id: int, meal_slot: str, portions: int):
+    conn = get_db()
+    conn.execute("""
+        INSERT OR REPLACE INTO slot_settings (plan_id, meal_slot, portions)
+        VALUES (?, ?, ?)
+    """, (plan_id, meal_slot, portions))
+    conn.commit()
+    conn.close()
+
+
+def get_all_slot_portions(plan_id: int) -> dict:
+    """Gibt alle Slot-Overrides als Dict zurück."""
+    conn = get_db()
+    rows = conn.execute("SELECT meal_slot, portions FROM slot_settings WHERE plan_id = ?", (plan_id,)).fetchall()
+    conn.close()
+    return {r["meal_slot"]: r["portions"] for r in rows}
+
+
+# ── E-Mail-Tokens ──────────────────────────────────────────────────────────────
+
+def create_email_token(user_id: int, token_type: str) -> str:
+    import secrets
+    from datetime import datetime, timedelta
+    token = secrets.token_urlsafe(32)
+    expires = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+    conn = get_db()
+    # Alte Tokens desselben Typs löschen
+    conn.execute("DELETE FROM email_tokens WHERE user_id = ? AND token_type = ?", (user_id, token_type))
+    conn.execute("""
+        INSERT INTO email_tokens (user_id, token, token_type, expires_at)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, token, token_type, expires))
+    conn.commit()
+    conn.close()
+    return token
+
+
+def verify_email_token(token: str, token_type: str):
+    """Gibt user_id zurück wenn Token gültig, sonst None."""
+    from datetime import datetime
+    conn = get_db()
+    r = conn.execute("""
+        SELECT user_id, expires_at FROM email_tokens
+        WHERE token = ? AND token_type = ?
+    """, (token, token_type)).fetchone()
+    if not r:
+        conn.close()
+        return None
+    if datetime.utcnow().isoformat() > r["expires_at"]:
+        conn.execute("DELETE FROM email_tokens WHERE token = ?", (token,))
+        conn.commit()
+        conn.close()
+        return None
+    user_id = r["user_id"]
+    conn.execute("DELETE FROM email_tokens WHERE token = ?", (token,))
+    conn.commit()
+    conn.close()
+    return user_id
+
+
+def set_user_verified(user_id: int):
+    conn = get_db()
+    conn.execute("UPDATE users SET is_verified = 1 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+
+def update_user_password(user_id: int, password_hash: str):
+    conn = get_db()
+    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+    conn.commit()
+    conn.close()

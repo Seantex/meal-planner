@@ -538,6 +538,32 @@ setTimeout(() => {
   });
 }, 5000);
 
+// ── Portionen pro Slot ─────────────────────────────────────────────────────────
+
+async function changePortions(slotId, planId, delta, btn) {
+  const valEl = document.getElementById(`portions-val-${slotId}`);
+  if (!valEl) return;
+  const current = parseInt(valEl.textContent) || 2;
+  const newVal = Math.max(1, Math.min(10, current + delta));
+  if (newVal === current) return;
+
+  valEl.textContent = newVal;
+  btn.disabled = true;
+
+  try {
+    const data = await apiPost(`/plan/${planId}/slot-portions/${slotId}`, { portions: newVal });
+    if (!data.success) {
+      valEl.textContent = current;
+      showToast('Fehler beim Speichern', 'error');
+    } else {
+      showToast(`🍽️ ${newVal} Portion${newVal !== 1 ? 'en' : ''} gesetzt`);
+    }
+  } catch(e) {
+    valEl.textContent = current;
+  }
+  btn.disabled = false;
+}
+
 function showPlanLoading() {
   const btn = document.getElementById("gen-btn");
   const loading = document.getElementById("plan-loading");

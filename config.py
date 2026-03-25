@@ -39,6 +39,14 @@ MEAL_SLOTS = [
     {"id": "fr_abend",  "label": "Freitag Abend",     "type": "weekend", "note": "Nur Abendessen · 2 Pers.",   "leftovers": False},
 ]
 
+# ── E-Mail (SMTP) ──────────────────────────────────────────────────────────────
+MAIL_SERVER   = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+MAIL_PORT     = int(os.getenv("MAIL_PORT", "587"))
+MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
+MAIL_FROM     = os.getenv("MAIL_FROM", MAIL_USERNAME)
+APP_URL       = os.getenv("APP_URL", "http://127.0.0.1:5001")
+
 # ── Scraper Einstellungen ──────────────────────────────────────────────────────
 SCRAPER_TIMEOUT = 15
 SCRAPER_HEADERS = {

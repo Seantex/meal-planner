@@ -106,6 +106,14 @@
 
       <form action="{{ url_for('new_plan') }}" method="POST" class="new-plan-form"
             onsubmit="showPlanLoading()">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label" style="font-size:.85rem;">Für wie viele Personen kochst du?</label>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="number" name="default_persons" min="1" max="10" value="2"
+                   class="form-control" style="width:80px; text-align:center; font-size:1rem; font-weight:700;">
+            <span style="color:var(--c-text-muted); font-size:.85rem;">Personen (Standard für alle Tage)</span>
+          </div>
+        </div>
         <button type="submit" class="btn btn--big btn--primary" id="gen-btn">
           ✨ Wochenplan generieren
         </button>
