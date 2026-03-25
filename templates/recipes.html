@@ -96,37 +96,99 @@ document.getElementById('ai-recipe-modal').addEventListener('click', function(e)
 </script>
 
 <!-- Filter & Suche -->
-<form method="GET" action="{{ url_for('recipes') }}" class="filter-bar">
+<form method="GET" action="{{ url_for('recipes') }}" class="filter-bar" id="recipe-filter-form">
   <div class="search-wrap">
     <input type="text" name="q" value="{{ search }}"
            class="form-input search-input"
            placeholder="Rezept suchen… (z.B. Pizza, Lachs, Curry)">
     <button type="submit" class="btn btn--primary">🔍</button>
   </div>
+
+  <!-- Typ-Filter -->
   <div class="filter-chips">
-    <a href="{{ url_for('recipes', q=search) }}"
-       class="filter-chip {% if not selected_type %}filter-chip--active{% endif %}">
-      Alle
-    </a>
-    <a href="{{ url_for('recipes', q=search, type='weekday') }}"
-       class="filter-chip {% if selected_type == 'weekday' %}filter-chip--active{% endif %}">
-      ⚡ Schnell (≤45min)
-    </a>
-    <a href="{{ url_for('recipes', q=search, type='weekend') }}"
-       class="filter-chip {% if selected_type == 'weekend' %}filter-chip--active{% endif %}">
-      🌟 Wochenende
-    </a>
+    <button type="button"
+       class="filter-chip {% if not selected_type %}filter-chip--active{% endif %}"
+       onclick="setTypeFilter('')">Alle</button>
+    <button type="button"
+       class="filter-chip {% if selected_type == 'weekday' %}filter-chip--active{% endif %}"
+       onclick="setTypeFilter('weekday')">⚡ Schnell (≤45min)</button>
+    <button type="button"
+       class="filter-chip {% if selected_type == 'weekend' %}filter-chip--active{% endif %}"
+       onclick="setTypeFilter('weekend')">🌟 Wochenende</button>
+    <input type="hidden" name="type" id="filter-type-val" value="{{ selected_type }}">
   </div>
-  <div class="filter-chips">
+
+  <!-- Kategorie-Mehrfachauswahl -->
+  <div class="filter-chips filter-chips--cats">
+    {% set cat_labels = {'pasta':'🍝 Pasta','fleisch':'🥩 Fleisch','geflügel':'🍗 Geflügel',
+       'fisch':'🐟 Fisch','vegetarisch':'🥦 Vegetarisch','eier':'🥚 Eier',
+       'suppe':'🍲 Suppe','süß':'🍰 Süß','sonstiges':'🍽️ Sonstiges'} %}
     {% for cat in categories %}
-    <a href="{{ url_for('recipes', q=search, cat=cat, type=selected_type) }}"
-       class="filter-chip {% if selected_cat == cat %}filter-chip--active{% endif %}">
-      {{ {'pasta':'🍝 Pasta','fleisch':'🥩 Fleisch','fisch':'🐟 Fisch',
-          'vegetarisch':'🥦 Vegetarisch','eier':'🥚 Eier','dessert':'🧇 Dessert'}.get(cat, cat) }}
-    </a>
+    <button type="button"
+       class="filter-chip {% if cat in selected_cats %}filter-chip--active{% endif %}"
+       onclick="toggleCat('{{ cat }}')">
+      {{ cat_labels.get(cat, cat) }}
+    </button>
+    {% if cat in selected_cats %}
+    <input type="hidden" name="cats" value="{{ cat }}" id="cat-hidden-{{ cat }}">
+    {% endif %}
     {% endfor %}
+    {% if selected_cats %}
+    <button type="button" class="filter-chip filter-chip--reset" onclick="clearCats()">✕ Alle Kategorien</button>
+    {% endif %}
   </div>
+
+  <!-- Nährwert-Filter -->
+  <details class="nutrition-filter-wrap" {% if min_protein or min_cal or max_cal %}open{% endif %}>
+    <summary class="nutrition-filter-toggle">🎯 Nährwert-Filter
+      {% if min_protein or min_cal or max_cal %}<span class="filter-active-dot"></span>{% endif %}
+    </summary>
+    <div class="nutrition-filter-grid">
+      <div class="nutrition-filter-field">
+        <label>Min. Protein (g/Portion)</label>
+        <input type="number" name="min_protein" value="{{ min_protein }}" min="0" max="200"
+               class="form-control nutrition-filter-input" placeholder="z.B. 30"
+               onchange="document.getElementById('recipe-filter-form').submit()">
+      </div>
+      <div class="nutrition-filter-field">
+        <label>Min. Kalorien (kcal)</label>
+        <input type="number" name="min_cal" value="{{ min_cal }}" min="0" max="2000"
+               class="form-control nutrition-filter-input" placeholder="z.B. 400"
+               onchange="document.getElementById('recipe-filter-form').submit()">
+      </div>
+      <div class="nutrition-filter-field">
+        <label>Max. Kalorien (kcal)</label>
+        <input type="number" name="max_cal" value="{{ max_cal }}" min="0" max="2000"
+               class="form-control nutrition-filter-input" placeholder="z.B. 700"
+               onchange="document.getElementById('recipe-filter-form').submit()">
+      </div>
+    </div>
+  </details>
 </form>
+
+<script>
+function toggleCat(cat) {
+  const hiddenId = 'cat-hidden-' + cat;
+  const existing = document.getElementById(hiddenId);
+  const form = document.getElementById('recipe-filter-form');
+  if (existing) {
+    existing.remove();
+  } else {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'cats'; inp.value = cat; inp.id = hiddenId;
+    form.appendChild(inp);
+  }
+  form.submit();
+}
+function clearCats() {
+  document.querySelectorAll('input[name="cats"]').forEach(el => el.remove());
+  document.getElementById('recipe-filter-form').submit();
+}
+function setTypeFilter(val) {
+  document.getElementById('filter-type-val').value = val;
+  document.getElementById('recipe-filter-form').submit();
+}
+</script>
 
 <!-- Rezept-Gruppen: Wochenende zuerst, dann Wochentag -->
 {% set weekend_recipes = recipes | selectattr('type', 'eq', 'weekend') | list %}

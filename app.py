@@ -912,9 +912,12 @@ def recipes():
     never_again_data = {n["recipe_id"]: n for n in db.get_never_again(_uid())}
     user_recipe_ids = {r["id"] for r in db.get_user_recipes(_uid())}
 
-    search = request.args.get("q", "").strip().lower()
-    category = request.args.get("cat", "").strip()
-    filter_type = request.args.get("type", "").strip()
+    search       = request.args.get("q", "").strip().lower()
+    filter_cats  = request.args.getlist("cats")           # multi-category
+    filter_type  = request.args.get("type", "").strip()
+    min_protein  = request.args.get("min_protein", "").strip()
+    max_cal      = request.args.get("max_cal", "").strip()
+    min_cal      = request.args.get("min_cal", "").strip()
 
     filtered = all_recipes
     if search:
@@ -922,12 +925,33 @@ def recipes():
                     if search in r["name"].lower()
                     or search in r.get("description", "").lower()
                     or any(search in tag for tag in r.get("tags", []))]
-    if category:
-        filtered = [r for r in filtered if r.get("category") == category]
+    if filter_cats:
+        filtered = [r for r in filtered if r.get("category") in filter_cats]
     if filter_type:
         filtered = [r for r in filtered if r.get("type") == filter_type or r.get("type") == "both"]
+    if min_protein:
+        try:
+            mp = float(min_protein)
+            filtered = [r for r in filtered
+                        if (r.get("nutrition_per_portion") or {}).get("protein", 0) >= mp]
+        except ValueError:
+            pass
+    if min_cal:
+        try:
+            mc = float(min_cal)
+            filtered = [r for r in filtered
+                        if (r.get("nutrition_per_portion") or {}).get("calories", 0) >= mc]
+        except ValueError:
+            pass
+    if max_cal:
+        try:
+            mc = float(max_cal)
+            filtered = [r for r in filtered
+                        if (r.get("nutrition_per_portion") or {}).get("calories", 9999) <= mc]
+        except ValueError:
+            pass
 
-    categories = sorted(set(r["category"] for r in all_recipes))
+    categories = sorted(set(r["category"] for r in all_recipes if r.get("category")))
 
     def sort_key(r):
         return (0 if r["id"] in favorites else 1, r["name"])
@@ -942,9 +966,12 @@ def recipes():
         never_again_data=never_again_data,
         user_recipe_ids=user_recipe_ids,
         search=search,
-        selected_cat=category,
+        selected_cats=filter_cats,
         selected_type=filter_type,
         categories=categories,
+        min_protein=min_protein,
+        max_cal=max_cal,
+        min_cal=min_cal,
     )
 
 

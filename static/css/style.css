@@ -632,11 +632,32 @@ a:hover { text-decoration: underline; }
   padding: 5px 14px; border-radius: 99px;
   background: rgba(255,255,255,.8); border: 1.5px solid var(--c-border);
   color: var(--c-text-muted); font-size: .8rem; font-weight: 500;
-  cursor: pointer; text-decoration: none;
-  transition: all var(--transition);
+  cursor: pointer; text-decoration: none; line-height: 1.4;
+  transition: all var(--transition); white-space: nowrap;
 }
 .filter-chip:hover { border-color: var(--c-primary); color: var(--c-primary); text-decoration: none; }
 .filter-chip--active { background: var(--c-primary-g); border-color: transparent; color: #fff; box-shadow: 0 3px 12px rgba(124,58,237,.3); }
+.filter-chip--reset { border-color: #ef4444; color: #ef4444; }
+.filter-chip--reset:hover { background: #fef2f2; }
+
+/* Nährwert-Filter */
+.nutrition-filter-wrap { margin-top: 2px; }
+.nutrition-filter-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .82rem; font-weight: 600; color: var(--c-text-muted);
+  cursor: pointer; user-select: none; list-style: none; padding: 4px 0;
+}
+.nutrition-filter-toggle::-webkit-details-marker { display: none; }
+.nutrition-filter-toggle::after { content: '▾'; font-size: .65rem; transition: transform .2s; }
+details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
+.filter-active-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-primary); display: inline-block; }
+.nutrition-filter-grid {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; padding: 12px 14px;
+  background: rgba(124,58,237,.03); border-radius: var(--r-md); border: 1px solid var(--c-border);
+}
+.nutrition-filter-field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+.nutrition-filter-field label { font-size: .75rem; font-weight: 600; color: var(--c-text-muted); }
+.nutrition-filter-input { width: 100%; padding: 6px 10px; font-size: .85rem; border-radius: var(--r-sm); border: 1.5px solid var(--c-border); }
 
 /* ── Recipe Detail ───────────────────────────────────────────────────────────── */
 .recipe-detail { max-width: 1000px; }
@@ -1101,7 +1122,7 @@ a:hover { text-decoration: underline; }
 }
 @media (max-width: 768px) {
   .main-content { padding: 18px 20px; }
-  .nav-inner { padding: 0 20px; }
+  .nav-inner { padding: 0 14px; gap: 10px; }
   .page-header { padding: 28px 24px; }
   .page-header-inner h1 { font-size: 1.8rem; }
   .suggestion-item { flex-direction: column; }
@@ -1113,6 +1134,18 @@ a:hover { text-decoration: underline; }
   .form-grid-2, .form-grid-3, .form-grid-4 { grid-template-columns: 1fr 1fr; }
   .ing-table-header { display: none; }
   .ing-row { grid-template-columns: 1fr 1fr; }
+  /* Navbar komprimieren */
+  .nav-links { gap: 0; }
+  .nav-link { font-size: .78rem; padding: 6px 8px; }
+  .nav-name { display: none; }
+  .nav-chevron { display: none; }
+  .nav-limits { display: none; }  /* Limits im Dropdown sichtbar */
+}
+@media (max-width: 480px) {
+  .nav-inner { padding: 0 10px; gap: 4px; height: 54px; }
+  .brand-text { display: none; }  /* Nur Emoji-Icon auf sehr kleinen Screens */
+  .nav-links { gap: 0; }
+  .nav-link { font-size: .75rem; padding: 5px 6px; }
 }
 
 /* ── Auth Pages ──────────────────────────────────────────────────────────────── */
@@ -1141,5 +1174,7 @@ a:hover { text-decoration: underline; }
 .nav-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: #fff; border: 1px solid var(--c-border); border-radius: var(--r-md); box-shadow: 0 8px 24px rgba(0,0,0,.12); min-width: 200px; z-index: 200; overflow: hidden; display: none; }
 .nav-user-menu.open .nav-dropdown { display: block; }
 .nav-dropdown-header { padding: 10px 14px; font-size: .78rem; color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
+.nav-dropdown-limits { display: flex; flex-direction: column; gap: 4px; padding: 8px 14px; border-bottom: 1px solid var(--c-border); }
+.limit-badge-sm { font-size: .75rem; color: var(--c-primary); font-weight: 600; }
 .nav-dropdown-item { display: block; padding: 10px 14px; font-size: .85rem; color: var(--c-text); text-decoration: none; transition: background var(--transition); }
 .nav-dropdown-item:hover { background: rgba(124,58,237,.06); color: var(--c-primary); }
