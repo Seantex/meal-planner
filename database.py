@@ -567,6 +567,51 @@ def get_user_by_id(user_id: int):
     return r
 
 
+def get_all_users() -> list:
+    """Gibt alle Benutzer mit Nutzungsstatistiken zurück (für Admin)."""
+    conn = get_db()
+    users = _fetchall(conn, "SELECT * FROM users ORDER BY created_at DESC")
+    week = _week_start_str()
+    for u in users:
+        uid = u["id"]
+        recipe_used = (_fetchone(conn, f"SELECT count FROM ai_usage WHERE user_id={PH} AND usage_type={PH} AND week_start={PH}",
+                                  (uid, "recipe", week)) or {}).get("count", 0)
+        plan_used   = (_fetchone(conn, f"SELECT count FROM ai_usage WHERE user_id={PH} AND usage_type={PH} AND week_start={PH}",
+                                  (uid, "plan",   week)) or {}).get("count", 0)
+        plan_count  = (_fetchone(conn, f"SELECT COUNT(*) AS c FROM week_plans WHERE user_id={PH}", (uid,)) or {}).get("c", 0)
+        u["recipe_used"] = recipe_used
+        u["plan_used"]   = plan_used
+        u["total_plans"] = plan_count
+    conn.close()
+    return users
+
+
+def update_user_profile(user_id: int, name: str, email: str, is_admin: int, is_verified: int):
+    conn = get_db()
+    _exec(conn, f"""UPDATE users SET name={PH}, email={PH}, is_admin={PH}, is_verified={PH}
+                    WHERE id={PH}""",
+          (name.strip(), email.strip().lower(), int(is_admin), int(is_verified), user_id))
+    conn.commit()
+    conn.close()
+
+
+def delete_user(user_id: int):
+    conn = get_db()
+    _exec(conn, f"DELETE FROM users WHERE id={PH}", (user_id,))
+    conn.commit()
+    conn.close()
+
+
+def reset_user_ai_usage(user_id: int, usage_type: str):
+    """Setzt das KI-Limit eines Nutzers für diese Woche auf 0 zurück."""
+    conn = get_db()
+    week = _week_start_str()
+    _exec(conn, f"DELETE FROM ai_usage WHERE user_id={PH} AND usage_type={PH} AND week_start={PH}",
+          (user_id, usage_type, week))
+    conn.commit()
+    conn.close()
+
+
 def email_exists(email: str) -> bool:
     conn = get_db()
     if IS_POSTGRES:

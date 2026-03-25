@@ -61,7 +61,7 @@
               <span class="limit-badge-sm" title="KI-Rezepte diese Woche noch verfügbar">✨ {{ recipe_remaining }}/3 Rezepte</span>
               <span class="limit-badge-sm" title="Wochenpläne diese Woche noch verfügbar">📋 {{ plan_remaining }}/1 Plan</span>
             </div>
-            <a href="{{ url_for('logout') }}" class="nav-dropdown-item">🚪 Abmelden</a>
+            {% if current_user.is_admin %}<a href="{{ url_for('admin_panel') }}" class="nav-dropdown-item">🛠️ Admin-Panel</a>{% endif %}<a href="{{ url_for('logout') }}" class="nav-dropdown-item">🚪 Abmelden</a>
           </div>
         </div>
       </div>

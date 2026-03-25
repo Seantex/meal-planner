@@ -1372,6 +1372,62 @@ def reset_password(token):
     return render_template("reset_password.html", token=token)
 
 
+# ── Admin-Panel ────────────────────────────────────────────────────────────────
+
+@app.route("/admin")
+@login_required
+def admin_panel():
+    if not _is_admin():
+        flash("Kein Zugriff.", "error")
+        return redirect(url_for("index"))
+    users = db.get_all_users()
+    return render_template("admin.html", users=users, limits=_LIMITS)
+
+
+@app.route("/admin/user/<int:user_id>", methods=["POST"])
+@login_required
+def admin_update_user(user_id):
+    if not _is_admin():
+        return jsonify({"error": "Forbidden"}), 403
+    action = request.form.get("action", "update")
+
+    if action == "delete":
+        if user_id == _uid():
+            return jsonify({"error": "Du kannst dich nicht selbst löschen."}), 400
+        db.delete_user(user_id)
+        flash("Benutzer gelöscht.", "success")
+        return redirect(url_for("admin_panel"))
+
+    if action == "update":
+        name       = request.form.get("name", "").strip()
+        email      = request.form.get("email", "").strip()
+        is_admin   = 1 if request.form.get("is_admin") else 0
+        is_verified = 1 if request.form.get("is_verified") else 0
+        if not name or not email:
+            flash("Name und E-Mail dürfen nicht leer sein.", "error")
+            return redirect(url_for("admin_panel"))
+        db.update_user_profile(user_id, name, email, is_admin, is_verified)
+        # Optional: neues Passwort setzen
+        new_pw = request.form.get("new_password", "").strip()
+        if new_pw:
+            if len(new_pw) < 6:
+                flash("Passwort muss mindestens 6 Zeichen haben.", "error")
+                return redirect(url_for("admin_panel"))
+            db.update_user_password(user_id, generate_password_hash(new_pw, method="pbkdf2:sha256"))
+        flash("Benutzer aktualisiert.", "success")
+        return redirect(url_for("admin_panel"))
+
+    if action == "reset_recipe":
+        db.reset_user_ai_usage(user_id, "recipe")
+        return jsonify({"success": True, "msg": "KI-Rezept-Limit zurückgesetzt"})
+
+    if action == "reset_plan":
+        db.reset_user_ai_usage(user_id, "plan")
+        return jsonify({"success": True, "msg": "Plan-Limit zurückgesetzt"})
+
+    return jsonify({"error": "Unbekannte Aktion"}), 400
+
+
 # ── Health-Check (für Uptime-Monitoring / Render Ping) ─────────────────────────
 @app.route("/health")
 def health():

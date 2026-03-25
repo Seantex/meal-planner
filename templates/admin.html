@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-inner">
+    <h1>🛠️ Admin-Panel</h1>
+    <p class="subtitle">{{ users|length }} Benutzer registriert</p>
+  </div>
+</div>
+
+<div class="admin-wrap">
+  {% for u in users %}
+  <div class="admin-user-card" id="user-card-{{ u.id }}">
+    <div class="admin-user-head">
+      <div class="admin-user-avatar">{{ u.name[0].upper() }}</div>
+      <div class="admin-user-info">
+        <strong>{{ u.name }}</strong>
+        <span class="admin-user-email">{{ u.email }}</span>
+        <div class="admin-user-badges">
+          {% if u.is_admin %}<span class="badge badge--purple">Admin</span>{% endif %}
+          {% if u.is_verified %}<span class="badge badge--green">Verifiziert</span>{% else %}<span class="badge badge--orange">Unverifiziert</span>{% endif %}
+          {% if u.id == current_user.id %}<span class="badge badge--blue">Du</span>{% endif %}
+        </div>
+      </div>
+      <div class="admin-user-stats">
+        <span title="KI-Rezepte diese Woche">✨ {{ u.recipe_used }}/{{ limits.recipe }}</span>
+        <span title="Pläne diese Woche">📋 {{ u.plan_used }}/{{ limits.plan }}</span>
+        <span title="Pläne gesamt">📅 {{ u.total_plans }} Pläne</span>
+      </div>
+      <button class="btn btn--outline btn--sm" onclick="toggleUserEdit({{ u.id }})">✏️ Bearbeiten</button>
+    </div>
+
+    <!-- Edit-Formular (eingeklappt) -->
+    <div class="admin-user-edit" id="edit-{{ u.id }}" style="display:none;">
+      <form method="POST" action="{{ url_for('admin_update_user', user_id=u.id) }}">
+        <input type="hidden" name="action" value="update">
+        <div class="admin-edit-grid">
+          <div class="form-group">
+            <label class="form-label">Name</label>
+            <input type="text" name="name" value="{{ u.name }}" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">E-Mail</label>
+            <input type="email" name="email" value="{{ u.email }}" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Neues Passwort <span style="color:var(--c-text-muted);font-weight:400">(leer = unverändert)</span></label>
+            <input type="password" name="new_password" class="form-input" placeholder="Mindestens 6 Zeichen" autocomplete="new-password">
+          </div>
+          <div class="form-group admin-checkboxes">
+            <label class="admin-check-label">
+              <input type="checkbox" name="is_admin" {% if u.is_admin %}checked{% endif %}> Admin-Rechte
+            </label>
+            <label class="admin-check-label">
+              <input type="checkbox" name="is_verified" {% if u.is_verified %}checked{% endif %}> E-Mail verifiziert
+            </label>
+          </div>
+        </div>
+        <div class="admin-edit-actions">
+          <button type="submit" class="btn btn--primary btn--sm">💾 Speichern</button>
+          <button type="button" class="btn btn--outline btn--sm"
+                  onclick="resetLimit({{ u.id }}, 'recipe')"
+                  title="KI-Rezept-Limit auf 0 zurücksetzen (= volle 3 Uses wieder)">
+            ✨ Rezept-Limit reset
+          </button>
+          <button type="button" class="btn btn--outline btn--sm"
+                  onclick="resetLimit({{ u.id }}, 'plan')"
+                  title="Plan-Limit auf 0 zurücksetzen (= 1 Use wieder)">
+            📋 Plan-Limit reset
+          </button>
+          {% if u.id != current_user.id %}
+          <button type="button" class="btn btn--danger btn--sm"
+                  onclick="deleteUser({{ u.id }}, '{{ u.name|replace("'", "\\'") }}')">
+            🗑 Löschen
+          </button>
+          {% endif %}
+          <button type="button" class="btn btn--ghost btn--sm" onclick="toggleUserEdit({{ u.id }})">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Löschen-Formular (versteckt, via JS) -->
+    <form id="delete-form-{{ u.id }}" method="POST" action="{{ url_for('admin_update_user', user_id=u.id) }}" style="display:none;">
+      <input type="hidden" name="action" value="delete">
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+function toggleUserEdit(uid) {
+  const el = document.getElementById('edit-' + uid);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+async function resetLimit(uid, type) {
+  const res = await fetch(`/admin/user/${uid}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: `action=reset_${type}`
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('✅ ' + data.msg);
+    setTimeout(() => location.reload(), 800);
+  } else {
+    showToast(data.error || 'Fehler', 'error');
+  }
+}
+function deleteUser(uid, name) {
+  if (!confirm(`Benutzer "${name}" wirklich löschen?\nAlle Pläne, Favoriten und Daten werden gelöscht!`)) return;
+  document.getElementById('delete-form-' + uid).submit();
+}
+</script>
+{% endblock %}
