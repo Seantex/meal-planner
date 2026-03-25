@@ -1,0 +1,22 @@
+name: Keep Render Server Alive
+
+on:
+  schedule:
+    # Alle 14 Minuten pingen (Render schläft nach 15min ein)
+    - cron: '*/14 * * * *'
+  workflow_dispatch:  # Manuell auslösbar
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          echo "Pinging meal-planner server..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://meal-planner-fjih.onrender.com/health")
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "Server is awake and healthy!"
+          else
+            echo "Server returned $STATUS – may be waking up"
+          fi

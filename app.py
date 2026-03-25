@@ -1372,6 +1372,13 @@ def reset_password(token):
     return render_template("reset_password.html", token=token)
 
 
+# ── Health-Check (für Uptime-Monitoring / Render Ping) ─────────────────────────
+@app.route("/health")
+def health():
+    """Einfacher Health-Check – gibt 200 OK zurück. Wird von Uptime-Diensten gepingt."""
+    return jsonify({"status": "ok", "service": "meal-planner"}), 200
+
+
 # Beim Start (auch via gunicorn): Verzeichnisse + DB initialisieren
 os.makedirs(os.path.dirname(os.path.abspath(_DB_PATH)), exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
