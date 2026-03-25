@@ -29,7 +29,11 @@ if DATABASE_URL:
     SERIAL = "SERIAL"
 
     def get_lastrowid(cursor):
-        return cursor.fetchone()[0]
+        row = cursor.fetchone()
+        # RealDictCursor gibt dict zurück → key 'id'
+        if isinstance(row, dict):
+            return row.get("id") or list(row.values())[0]
+        return row[0]
 
     IS_POSTGRES = True
 
