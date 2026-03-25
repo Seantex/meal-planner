@@ -15,9 +15,10 @@ from flask_login import (LoginManager, UserMixin, login_user, logout_user,
 import database as db
 import planner
 from scraper.manager import scrape_all_deals, parse_pdf_deals, try_download_pdf_from_web, FLYER_URLS
-from config import (SECRET_KEY, DEBUG, UPLOADS_DIR, MEAL_SLOTS,
+from config import (SECRET_KEY, DEBUG, UPLOADS_DIR, MEAL_SLOTS, DB_PATH as _DB_PATH,
                     BUDGET_WARNING, ANTHROPIC_API_KEY, RECIPES_PATH,
                     MAIL_SERVER, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM, APP_URL)
+from database import LIMITS as _LIMITS
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -73,7 +74,7 @@ _WEEKDAY_NAMES = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Sa
 _WEEKDAY_SHORT  = ["mo",    "di",       "mi",       "do",         "fr",      "sa",       "so"]
 
 
-def _parse_slot_config(form, week_start: str) -> list | None:
+def _parse_slot_config(form, week_start: str):
     """
     Liest aus dem Formular die ausgewählten Tage + Mittag/Abend-Auswahl.
     Gibt eine Liste von Slot-Dicts zurück oder None (→ Standard MEAL_SLOTS).
@@ -227,8 +228,7 @@ def logout():
 @login_required
 def index():
     db.init_db()
-    from config import LIMITS
-    plan_limit = LIMITS.get("plan", 1)
+    plan_limit = _LIMITS.get("plan", 1)
     recent_plans = db.get_recent_plans(_uid(), limit=plan_limit * 4)  # zeige ein paar Wochen
     active_plan = recent_plans[0] if recent_plans else None
     deals = db.get_deals()
@@ -1346,8 +1346,7 @@ def reset_password(token):
 
 
 # Beim Start (auch via gunicorn): Verzeichnisse + DB initialisieren
-_db_dir = os.path.dirname(os.path.abspath(__import__('config').DB_PATH))
-os.makedirs(_db_dir, exist_ok=True)
+os.makedirs(os.path.dirname(os.path.abspath(_DB_PATH)), exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 db.init_db()
 
