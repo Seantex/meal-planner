@@ -3,11 +3,7 @@ services:
     name: meal-planner
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
-    disk:
-      name: data
-      mountPath: /app/data
-      sizeGB: 1
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -15,5 +11,5 @@ services:
         generateValue: true
       - key: DEBUG
         value: "false"
-      - key: DB_PATH
-        value: /app/data/meal_planner.db
+      - key: PYTHON_VERSION
+        value: "3.11.0"
