@@ -82,7 +82,7 @@ a:hover { text-decoration: underline; }
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.nav-links { display: flex; gap: 4px; margin-left: auto; }
+.nav-links { display: flex; gap: 4px; }
 .nav-link {
   padding: 6px 16px; border-radius: var(--r-sm);
   color: var(--c-text-muted); font-size: .88rem; font-weight: 500;
@@ -1135,6 +1135,7 @@ details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
   .ing-table-header { display: none; }
   .ing-row { grid-template-columns: 1fr 1fr; }
   /* Navbar komprimieren */
+  .nav-inner { gap: 8px; }
   .nav-links { gap: 0; }
   .nav-link { font-size: .78rem; padding: 6px 8px; }
   .nav-name { display: none; }
