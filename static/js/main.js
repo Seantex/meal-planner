@@ -538,6 +538,28 @@ setTimeout(() => {
   });
 }, 5000);
 
+// ── Gekocht-Abhaken ────────────────────────────────────────────────────────────
+
+async function toggleCooked(slotId, planId, btn) {
+  const card = document.getElementById(`slot-${slotId}`);
+  const data = await apiPost(`/plan/${planId}/cooked/${slotId}`);
+  if (data.success) {
+    if (data.cooked) {
+      card?.classList.add('meal-card--cooked');
+      btn.classList.add('cooked-btn--active');
+      btn.textContent = '✅ Gekocht';
+      btn.title = 'Als nicht gekocht markieren';
+      showToast('✅ Als gekocht markiert');
+    } else {
+      card?.classList.remove('meal-card--cooked');
+      btn.classList.remove('cooked-btn--active');
+      btn.textContent = '☐ Gekocht';
+      btn.title = 'Als gekocht markieren';
+      showToast('Markierung entfernt');
+    }
+  }
+}
+
 // ── Portionen pro Slot ─────────────────────────────────────────────────────────
 
 async function changePortions(slotId, planId, delta, btn) {

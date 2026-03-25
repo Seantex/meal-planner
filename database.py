@@ -166,6 +166,16 @@ def init_db():
         )
     """)
 
+    # ── Abgehakte Slots (gekocht) ─────────────────────────────────────────────
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS slot_cooked (
+            plan_id   INTEGER NOT NULL REFERENCES week_plans(id) ON DELETE CASCADE,
+            meal_slot TEXT    NOT NULL,
+            cooked_at TEXT    DEFAULT (datetime('now')),
+            PRIMARY KEY (plan_id, meal_slot)
+        )
+    """)
+
     # ── E-Mail-Tokens (Verifikation & Passwort-Reset) ─────────────────────────
     c.execute("""
         CREATE TABLE IF NOT EXISTS email_tokens (
@@ -783,3 +793,30 @@ def update_user_password(user_id: int, password_hash: str):
     conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
     conn.commit()
     conn.close()
+
+
+# ── Abgehakte Slots (gekocht) ───────────────────────────────────────────────────
+
+def get_cooked_slots(plan_id: int) -> set:
+    conn = get_db()
+    rows = conn.execute("SELECT meal_slot FROM slot_cooked WHERE plan_id = ?", (plan_id,)).fetchall()
+    conn.close()
+    return {r["meal_slot"] for r in rows}
+
+
+def toggle_slot_cooked(plan_id: int, meal_slot: str) -> bool:
+    """Toggelt den 'gekocht'-Status. Gibt True zurück wenn jetzt gekocht, False wenn zurückgesetzt."""
+    conn = get_db()
+    exists = conn.execute(
+        "SELECT 1 FROM slot_cooked WHERE plan_id = ? AND meal_slot = ?", (plan_id, meal_slot)
+    ).fetchone()
+    if exists:
+        conn.execute("DELETE FROM slot_cooked WHERE plan_id = ? AND meal_slot = ?", (plan_id, meal_slot))
+        conn.commit()
+        conn.close()
+        return False
+    else:
+        conn.execute("INSERT INTO slot_cooked (plan_id, meal_slot) VALUES (?, ?)", (plan_id, meal_slot))
+        conn.commit()
+        conn.close()
+        return True

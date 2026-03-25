@@ -1024,6 +1024,23 @@ a:hover { text-decoration: underline; }
 .meal-card--skipped { opacity: .6; }
 .meal-card--skipped .meal-card-header { text-decoration: line-through; }
 .skip-btn { color: var(--c-text-muted); font-size: .75rem; }
+.meal-card--cooked { opacity: .7; }
+.meal-card--cooked::after {
+  content: '✅ Gekocht';
+  position: absolute; top: 10px; right: 10px;
+  background: #16a34a; color: #fff;
+  font-size: .75rem; font-weight: 600; padding: 2px 10px;
+  border-radius: 20px; pointer-events: none;
+}
+.meal-card { position: relative; }
+.cooked-btn {
+  font-size: .75rem; padding: 3px 10px; border-radius: 20px;
+  border: 1.5px solid var(--c-border); background: transparent;
+  cursor: pointer; color: var(--c-text-muted); transition: all var(--transition);
+  font-family: var(--font);
+}
+.cooked-btn:hover { border-color: #16a34a; color: #16a34a; }
+.cooked-btn--active { background: #dcfce7; border-color: #16a34a; color: #16a34a; font-weight: 600; }
 
 /* ── Print ───────────────────────────────────────────────────────────────────── */
 @media print {

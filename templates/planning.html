@@ -32,7 +32,7 @@
   {% set slot = slot_data.slot %}
   {% set selected = slot_data.selected_recipe %}
 
-  <div class="meal-card {% if selected %}meal-card--done{% endif %} {% if slot_data.skipped %}meal-card--skipped{% endif %}"
+  <div class="meal-card {% if selected %}meal-card--done{% endif %} {% if slot_data.skipped %}meal-card--skipped{% endif %} {% if slot_data.cooked %}meal-card--cooked{% endif %}"
        id="slot-{{ slot.id }}">
     <div class="meal-card-header">
       <div class="meal-info">
@@ -45,6 +45,12 @@
                 onclick="unskipSlot('{{ slot.id }}', {{ plan.id }})">Rückgängig</button>
       {% elif selected %}
         <span class="meal-status meal-status--done">✓ Gewählt</span>
+        <button class="btn btn--xs cooked-btn {% if slot_data.cooked %}cooked-btn--active{% endif %}"
+                id="cooked-btn-{{ slot.id }}"
+                onclick="toggleCooked('{{ slot.id }}', {{ plan.id }}, this)"
+                title="{% if slot_data.cooked %}Als nicht gekocht markieren{% else %}Als gekocht markieren{% endif %}">
+          {% if slot_data.cooked %}✅ Gekocht{% else %}☐ Gekocht{% endif %}
+        </button>
       {% else %}
         <span class="meal-status meal-status--open">Offen</span>
         <button class="btn btn--ghost btn--xs skip-btn"

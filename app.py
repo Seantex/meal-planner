@@ -60,13 +60,13 @@ def allowed_file(filename):
 
 
 def _current_week_start() -> str:
+    """Nächsten oder aktuellen Samstag als Standard-Wochenstart."""
     today = date.today()
-    days_ahead = 7 - today.weekday()
-    if today.weekday() >= 4:
-        next_monday = today + timedelta(days=days_ahead % 7 or 7)
-    else:
-        next_monday = today - timedelta(days=today.weekday())
-    return next_monday.isoformat()
+    # 5 = Samstag (weekday: Mon=0..Sun=6)
+    days_until_saturday = (5 - today.weekday()) % 7
+    if days_until_saturday == 0 and today.weekday() == 5:
+        return today.isoformat()
+    return (today + timedelta(days=days_until_saturday or 7)).isoformat()
 
 
 def _uid() -> int:
@@ -269,7 +269,12 @@ def new_plan():
         return redirect(url_for("index"))
 
     cravings = request.form.get("cravings", "").strip()
-    week_start = _current_week_start()
+    # Wochenstart aus Formular, Fallback auf nächsten Samstag
+    week_start_raw = request.form.get("week_start", "").strip()
+    try:
+        week_start = date.fromisoformat(week_start_raw).isoformat()
+    except (ValueError, AttributeError):
+        week_start = _current_week_start()
     default_persons = max(1, min(10, int(request.form.get("default_persons", 2) or 2)))
     plan_id = db.create_week_plan(week_start, cravings, _uid(), default_persons=default_persons)
     db.increment_ai_usage(_uid(), "plan")
@@ -300,6 +305,7 @@ def planning(plan_id):
     deals = db.get_deals()
     default_persons = db.get_default_persons(plan_id)
     slot_portions_map = db.get_all_slot_portions(plan_id)
+    cooked_slots = db.get_cooked_slots(plan_id)
 
     slots_data = []
     for slot in MEAL_SLOTS:
@@ -336,6 +342,7 @@ def planning(plan_id):
             "selected_recipe": planner.get_recipe(sel_id, user_id=_uid()) if sel_id and sel_id != "SKIPPED" else None,
             "skipped": sel_id == "SKIPPED",
             "portions": portions,
+            "cooked": sid in cooked_slots,
         })
 
     completed = sum(1 for s in slots_data if s["selected_recipe_id"])
@@ -454,6 +461,16 @@ def set_slot_portions(plan_id, meal_slot):
     portions = max(1, min(10, int(portions)))
     db.set_slot_portions(plan_id, meal_slot, portions)
     return jsonify({"success": True, "portions": portions})
+
+
+@app.route("/plan/<int:plan_id>/cooked/<meal_slot>", methods=["POST"])
+@login_required
+def toggle_cooked(plan_id, meal_slot):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    cooked = db.toggle_slot_cooked(plan_id, meal_slot)
+    return jsonify({"success": True, "cooked": cooked})
 
 
 @app.route("/plan/<int:plan_id>/regenerate/<meal_slot>", methods=["POST"])
