@@ -14,7 +14,13 @@ import os
 import tempfile
 import requests as _requests
 from datetime import date, timedelta
-from playwright.async_api import async_playwright, TimeoutError as PWTimeout
+try:
+    from playwright.async_api import async_playwright, TimeoutError as PWTimeout
+    _PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    _PLAYWRIGHT_AVAILABLE = False
+    async_playwright = None
+    PWTimeout = Exception
 
 from scraper.hofer import _categorize, _parse_price
 
@@ -360,6 +366,9 @@ def scrape_with_playwright(market: str) -> list:
     Synchroner Wrapper für Playwright-Scraping.
     Startet einen Headless-Browser und scrapt den angegebenen Markt.
     """
+    if not _PLAYWRIGHT_AVAILABLE:
+        print(f"[{market}] Playwright nicht verfügbar (nicht installiert)")
+        return []
     async def _run():
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
