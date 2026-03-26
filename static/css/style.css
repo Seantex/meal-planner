@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEAL PLANNER — NOVA DESIGN SYSTEM v52
+   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v60
    Apple-grade dark UI · Cursor spotlight · Spring physics · Live aurora
+   Canvas particles · Custom cursor · Text scramble · Maximum effects
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&display=swap');
@@ -172,22 +173,29 @@ body::after {
   background-size: 250px 250px;
 }
 
-/* ── Cursor spotlight ───────────────────────────────────────────────────── */
+/* ── Cursor spotlight — MAXIMUM BRIGHTNESS ──────────────────────────────── */
 #cursor-spotlight {
   position: fixed;
   inset: 0;
   z-index: 2;
   pointer-events: none;
   background:
-    radial-gradient(300px circle at var(--cx,50%) var(--cy,50%),
-      rgba(155,92,246,.28) 0%,
-      rgba(155,92,246,.12) 40%,
+    radial-gradient(200px circle at var(--cx,50%) var(--cy,50%),
+      rgba(155,92,246,.85) 0%,
+      rgba(155,92,246,.55) 25%,
+      rgba(155,92,246,.2) 55%,
+      transparent 75%
+    ),
+    radial-gradient(500px circle at var(--cx,50%) var(--cy,50%),
+      rgba(155,92,246,.25) 0%,
+      rgba(244,114,182,.18) 40%,
       transparent 70%
     ),
-    radial-gradient(700px circle at var(--cx,50%) var(--cy,50%),
-      rgba(244,114,182,.09) 0%,
-      transparent 70%
+    radial-gradient(900px circle at var(--cx,50%) var(--cy,50%),
+      rgba(244,114,182,.1) 0%,
+      transparent 65%
     );
+  mix-blend-mode: screen;
 }
 
 /* ── Page Loader ────────────────────────────────────────────────────────── */
@@ -2047,3 +2055,167 @@ input::placeholder { color: var(--t3); }
   .hero-stat { padding: 12px 16px; border-right:none; border-bottom:1px solid var(--border); }
   .hero-stat:last-child { border-bottom:none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OBSIDIAN MAX EFFECTS — v60 Additions
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Custom Cursor (desktop) ─────────────────────────────────────────────── */
+@media (hover: hover) {
+  body.cursor-ready, body.cursor-ready * { cursor: none !important; }
+}
+
+#cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--p-l);
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s, transform .08s, width .2s var(--spring), height .2s var(--spring), background .2s;
+  box-shadow: 0 0 12px var(--p-glow), 0 0 4px var(--p);
+  will-change: transform;
+}
+#cursor-dot.cursor-dot--hover {
+  width: 12px; height: 12px;
+  background: white;
+  box-shadow: 0 0 20px var(--p-glow), 0 0 8px white;
+}
+#cursor-dot.cursor-dot--click {
+  width: 5px; height: 5px;
+  background: var(--pink);
+  box-shadow: 0 0 16px var(--pink-glow);
+}
+
+#cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(155,92,246,.6);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s, width .3s var(--spring), height .3s var(--spring), border-color .2s, transform .14s linear;
+  will-change: transform;
+}
+#cursor-ring.cursor-ring--hover {
+  width: 56px; height: 56px;
+  border-color: rgba(155,92,246,1);
+  box-shadow: 0 0 20px rgba(155,92,246,.35), inset 0 0 20px rgba(155,92,246,.08);
+}
+#cursor-ring.cursor-ring--click {
+  width: 30px; height: 30px;
+  border-color: var(--pink);
+  box-shadow: 0 0 16px var(--pink-glow);
+}
+
+/* ── Canvas layers ──────────────────────────────────────────────────────── */
+#particle-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+#trail-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ── Click spark explosion ───────────────────────────────────────────────── */
+@keyframes spark-fly {
+  0%   { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2); }
+}
+.click-spark {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ── Text scramble char ──────────────────────────────────────────────────── */
+.scramble-char {
+  color: var(--p-l);
+  opacity: 0.7;
+  font-family: monospace;
+}
+
+/* ── Hero enhancements ───────────────────────────────────────────────────── */
+.hero-glow {
+  background: radial-gradient(circle,rgba(155,92,246,.22) 0%,rgba(244,114,182,.1) 50%,transparent 70%);
+  box-shadow: 0 0 120px rgba(155,92,246,.25);
+}
+
+/* ── Reveal: also basic .reveal ────────────────────────────────────────── */
+.js-ready .reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .7s var(--smooth), transform .7s var(--smooth);
+}
+.js-ready .reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Enhanced card glow on hover ───────────────────────────────────────── */
+.tilt-card:hover {
+  box-shadow:
+    var(--sh-md),
+    0 0 80px rgba(155,92,246,.18),
+    0 0 160px rgba(155,92,246,.08);
+}
+
+/* ── Staggered reveal delay helpers ────────────────────────────────────── */
+.reveal-delay-1 { transition-delay: .05s; }
+.reveal-delay-2 { transition-delay: .15s; }
+.reveal-delay-3 { transition-delay: .25s; }
+.reveal-delay-4 { transition-delay: .35s; }
+
+/* ── Enhanced hero stats ─────────────────────────────────────────────────── */
+.hero-stat-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Animated underline on nav links ────────────────────────────────────── */
+.nav-link { overflow: hidden; }
+
+/* ── Glowing form focus ─────────────────────────────────────────────────── */
+.form-control:focus,
+.form-input:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow: 0 0 0 3px rgba(155,92,246,.28), 0 0 20px rgba(155,92,246,.12);
+}
+
+/* ── Recipe card enhanced ───────────────────────────────────────────────── */
+.recipe-card:hover {
+  box-shadow: var(--sh-md), 0 0 60px rgba(155,92,246,.15);
+}
+
+/* ── Transition for hero parallax ───────────────────────────────────────── */
+.hero-title,
+.hero-subtitle,
+.hero-glow {
+  will-change: transform;
+}
+
+/* ── Selection color ────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(155,92,246,.45);
+  color: #fff;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb {
+  background: rgba(155,92,246,.35);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(155,92,246,.6); }
