@@ -24,8 +24,10 @@
         </div>
       </div>
       <div class="admin-user-stats">
-        <span title="KI-Rezepte diese Woche">✨ {{ u.recipe_used }}/{{ limits.recipe }}</span>
-        <span title="Pläne diese Woche">📋 {{ u.plan_used }}/{{ limits.plan }}</span>
+        {% set recipe_rem = [limits.recipe - u.recipe_used, 0] | max %}
+        {% set plan_rem   = [limits.plan   - u.plan_used,   0] | max %}
+        <span title="KI-Rezepte verbleibend diese Woche">✨ {{ recipe_rem }}/{{ limits.recipe }}</span>
+        <span title="Pläne verbleibend diese Woche">📋 {{ plan_rem }}/{{ limits.plan }}</span>
         <span title="Pläne gesamt">📅 {{ u.total_plans }} Pläne</span>
       </div>
       <button class="btn btn--outline btn--sm" onclick="toggleUserEdit({{ u.id }})">✏️ Bearbeiten</button>
