@@ -16,14 +16,16 @@ jobs:
           # Render cold-start kann 60-90 Sekunden dauern → 100s Timeout + 3 Versuche
           for i in 1 2 3; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 100 \
-              "https://meal-planner-fjih.onrender.com/health" || echo "000")
+              "https://meal-planner-fjih.onrender.com/health")
             echo "Versuch $i: HTTP Status $STATUS"
             if [ "$STATUS" = "200" ]; then
               echo "Server ist wach und gesund!"
               exit 0
             fi
-            echo "Warte 10 Sekunden vor nächstem Versuch..."
-            sleep 10
+            if [ "$i" -lt 3 ]; then
+              echo "Warte 15 Sekunden vor nächstem Versuch..."
+              sleep 15
+            fi
           done
-          echo "Server antwortet nicht (möglicherweise Deployment läuft)"
+          echo "Server antwortet nicht nach 3 Versuchen – Render wacht auf"
           exit 0
