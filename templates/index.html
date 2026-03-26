@@ -151,7 +151,7 @@
     <div class="card-body" style="padding:0;">
       {% for p in recent_plans %}
       <div class="plan-list-item {% if loop.first %}plan-list-item--active{% endif %}">
-        <a href="{{ url_for('planning', plan_id=p.id) }}" class="plan-list-link">
+        <a href="{{ url_for('shopping', plan_id=p.id) if p.status == 'done' else url_for('planning', plan_id=p.id) }}" class="plan-list-link">
           <div class="plan-list-info">
             <span class="plan-list-name" id="plan-name-{{ p.id }}">{{ p.name if p.name else 'Wochenplan' }}</span>
             <span class="plan-list-date">ab {{ p.week_start }}</span>

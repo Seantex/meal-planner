@@ -796,6 +796,7 @@ def finish_plan(plan_id):
             db.add_favorite(recipe_id, _uid())
 
     planner.generate_shopping_list(plan_id, user_id=_uid())
+    db.finish_plan(plan_id)
     flash("✓ Wochenplan abgeschlossen! Deine Einkaufsliste ist bereit.", "success")
     return redirect(url_for("shopping", plan_id=plan_id))
 
