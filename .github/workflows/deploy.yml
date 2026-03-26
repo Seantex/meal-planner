@@ -1,0 +1,22 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        run: |
+          echo "Triggering Render deployment..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "${{ secrets.RENDER_DEPLOY_HOOK }}")
+          echo "Render response: $STATUS"
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "201" ]; then
+            echo "Deploy triggered successfully!"
+          else
+            echo "Deploy hook returned $STATUS – check Render dashboard"
+          fi
