@@ -935,12 +935,13 @@ def finish_plan(plan_id: int):
 def get_recent_recipe_ids(exclude_plan_id: int, limit_plans: int = 2, user_id: int = 1) -> list:
     conn = get_db()
     rows = _fetchall(conn, f"""
-        SELECT DISTINCT ms.recipe_id
+        SELECT ms.recipe_id
         FROM meal_selections ms
         JOIN week_plans wp ON ms.plan_id = wp.id
         WHERE wp.status = 'done'
           AND wp.user_id = {PH}
           AND wp.id != {PH}
+        GROUP BY ms.recipe_id, wp.created_at
         ORDER BY wp.created_at DESC
         LIMIT {PH}
     """, (user_id, exclude_plan_id, limit_plans * 9))
