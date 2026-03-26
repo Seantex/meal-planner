@@ -197,10 +197,16 @@ body::after {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  transition: opacity .5s var(--smooth), visibility 0s .5s;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s var(--smooth);
 }
 
-.page-loader.hidden { opacity: 0; visibility: hidden; }
+/* JS adds .visible to show, removes it to hide */
+.page-loader.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .page-loader-ring {
   width: 40px; height: 40px;
