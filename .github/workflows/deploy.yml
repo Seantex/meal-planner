@@ -9,14 +9,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render deploy
+      - name: Trigger Render deploy via API
         run: |
           echo "Triggering Render deployment..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "${{ secrets.RENDER_DEPLOY_HOOK }}")
-          echo "Render response: $STATUS"
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "201" ]; then
-            echo "Deploy triggered successfully!"
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+            -d '{"clearCache": false}')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "HTTP: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" = "201" ]; then
+            echo "✅ Deploy erfolgreich ausgelöst!"
           else
-            echo "Deploy hook returned $STATUS – check Render dashboard"
+            echo "⚠️  Deploy returned $HTTP_CODE – bitte Render Dashboard prüfen"
           fi
+
+      - name: Wait for deploy and verify
+        run: |
+          echo "Warte 3 Minuten auf Deploy..."
+          sleep 180
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 \
+            "https://meal-planner-fjih.onrender.com/health")
+          echo "Server status nach Deploy: $STATUS"
