@@ -69,7 +69,9 @@ async function apiPost(url, data = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok && !json.error) json.error = `Serverfehler (${res.status})`;
+  return json;
 }
 
 function showToast(msg, type = 'success') {

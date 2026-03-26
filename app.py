@@ -468,15 +468,17 @@ def wish_recipe(plan_id, meal_slot):
     if not wish:
         return jsonify({"error": "Kein Wunsch angegeben"}), 400
 
-    slot_obj = next((s for s in MEAL_SLOTS if s["id"] == meal_slot), None)
-    slot_type = slot_obj.get("type", "weekday") if slot_obj else "weekday"
+    plan_slots = db.get_plan_slots(plan_id)
+    slot_row = next((s for s in plan_slots if s["slot_id"] == meal_slot), None)
+    slot_type = slot_row["type"] if slot_row else "weekday"
+    leftovers = bool(slot_row["leftovers"]) if slot_row else False
 
     recipe = planner.generate_wish_recipe(wish, slot_type)
     if not recipe:
         return jsonify({"error": "KI konnte kein Rezept generieren. Bitte erneut versuchen."}), 500
 
     db.increment_ai_usage(_uid(), f"wish_{meal_slot}")
-    portions = 3 if (slot_obj or {}).get("leftovers") else 2
+    portions = 3 if leftovers else 2
     cost = planner.estimate_recipe_cost(recipe, db.get_deals(), portions)
 
     return jsonify({"success": True, "recipe": recipe, "estimated_cost": round(cost, 2), "portions": portions})
@@ -1301,11 +1303,14 @@ def plan_overview(plan_id):
                 selected_recipes.append({"slot": slot, "recipe": r})
 
     nutrition_data = planner.get_weekly_nutrition(plan_id, user_id=_uid())
+    # completed = slots that have any selection (including SKIPPED)
+    completed_count = sum(1 for s in plan_slots if selections.get(s["slot_id"]))
 
     return render_template(
         "overview.html", plan=plan, selected_recipes=selected_recipes,
         nutrition=nutrition_data, total_slots=len(plan_slots),
         selected_count=len(selected_recipes),
+        completed_count=completed_count,
     )
 
 

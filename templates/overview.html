@@ -136,7 +136,7 @@
   <a href="{{ url_for('planning', plan_id=plan.id) }}" class="btn btn--outline">
     ← Zurück zur Planung
   </a>
-  {% if selected_count == total_slots %}
+  {% if completed_count == total_slots %}
   <form action="{{ url_for('finish_plan', plan_id=plan.id) }}" method="POST" style="display:inline">
     <button class="btn btn--primary" type="submit">
       🛒 Einkaufsliste erstellen →

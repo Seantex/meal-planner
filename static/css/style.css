@@ -1243,3 +1243,16 @@ details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
   .admin-user-stats { font-size: .72rem; gap: 8px; }
   .admin-edit-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Druckansicht ─────────────────────────────────────────────────────────────── */
+@media print {
+  .navbar, .footer, .shopping-actions, .sidebar-card, .plan-footer,
+  .page-loader, .flash-container, .btn, .btn-icon,
+  .item-actions, .item-note-btn, .item-del-btn,
+  #cost-breakdown-modal, #note-editor { display: none !important; }
+  body { background: #fff !important; }
+  .shopping-layout { display: block !important; }
+  .item { break-inside: avoid; border-bottom: 1px solid #eee; padding: 6px 0; }
+  .item--checked { opacity: .45; text-decoration: line-through; }
+  .main-content { padding: 0 !important; }
+}
