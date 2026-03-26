@@ -273,6 +273,7 @@ async function unskipSlot(slotId, planId) {
 function updateProgress() {
   const done = document.querySelectorAll('.meal-card--done, .meal-card--skipped').length;
   const total = document.querySelectorAll('.meal-card').length;
+  if (total === 0) return;
   const pct = Math.round((done / total) * 100);
 
   const fill = document.querySelector('.progress-fill');
