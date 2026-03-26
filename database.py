@@ -92,11 +92,15 @@ def init_db():
         _init_postgres(conn)
         # PostgreSQL migrations
         cur = _cursor(conn)
-        try:
-            cur.execute("ALTER TABLE week_plans ADD COLUMN IF NOT EXISTS name TEXT DEFAULT ''")
-            conn.commit()
-        except Exception:
-            conn.rollback()
+        for ddl in [
+            "ALTER TABLE week_plans ADD COLUMN IF NOT EXISTS name TEXT DEFAULT ''",
+            "ALTER TABLE week_plans ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0",
+        ]:
+            try:
+                cur.execute(ddl)
+                conn.commit()
+            except Exception:
+                conn.rollback()
     else:
         c = conn.cursor()
         _init_sqlite(c)
@@ -496,6 +500,8 @@ def _migrate_schema(c):
         c.execute("ALTER TABLE week_plans ADD COLUMN default_persons INTEGER DEFAULT 2")
     if wp_cols and "name" not in wp_cols:
         c.execute("ALTER TABLE week_plans ADD COLUMN name TEXT DEFAULT ''")
+    if wp_cols and "sort_order" not in wp_cols:
+        c.execute("ALTER TABLE week_plans ADD COLUMN sort_order INTEGER DEFAULT 0")
 
     # week_plans: user_id Migration
     if wp_cols and "user_id" not in wp_cols:
@@ -928,7 +934,7 @@ def get_recent_plans(user_id: int, limit: int = 8) -> list:
     conn = get_db()
     rows = _fetchall(conn, f"""
         SELECT * FROM week_plans WHERE user_id = {PH}
-        ORDER BY created_at DESC LIMIT {PH}
+        ORDER BY sort_order DESC, created_at DESC LIMIT {PH}
     """, (user_id, limit))
     conn.close()
     return rows
@@ -944,6 +950,36 @@ def finish_plan(plan_id: int):
 def rename_plan(plan_id: int, name: str):
     conn = get_db()
     _exec(conn, f"UPDATE week_plans SET name = {PH} WHERE id = {PH}", (name.strip(), plan_id))
+    conn.commit()
+    conn.close()
+
+
+def reorder_plan(plan_id: int, user_id: int, direction: str):
+    """Swap sort_order with the adjacent plan (direction: 'up' or 'down')."""
+    conn = get_db()
+    plans = _fetchall(conn, f"""
+        SELECT id, sort_order FROM week_plans WHERE user_id = {PH}
+        ORDER BY sort_order DESC, created_at DESC
+    """, (user_id,))
+    idx = next((i for i, p in enumerate(plans) if p['id'] == plan_id), None)
+    if idx is None:
+        conn.close()
+        return
+    if direction == 'up' and idx > 0:
+        neighbor = plans[idx - 1]
+    elif direction == 'down' and idx < len(plans) - 1:
+        neighbor = plans[idx + 1]
+    else:
+        conn.close()
+        return
+    my_order = plans[idx]['sort_order']
+    nb_order = neighbor['sort_order']
+    if my_order == nb_order:
+        my_order = nb_order + 1 if direction == 'up' else nb_order - 1
+    else:
+        my_order, nb_order = nb_order, my_order
+    _exec(conn, f"UPDATE week_plans SET sort_order = {PH} WHERE id = {PH}", (my_order, plan_id))
+    _exec(conn, f"UPDATE week_plans SET sort_order = {PH} WHERE id = {PH}", (nb_order, neighbor['id']))
     conn.commit()
     conn.close()
 

@@ -103,7 +103,7 @@
       {% endif %}
 
       <form action="{{ url_for('new_plan') }}" method="POST" class="new-plan-form"
-            id="new-plan-form" onsubmit="showPlanLoading()">
+            id="new-plan-form">
 
         <!-- Startdatum -->
         <div class="form-group" style="margin-bottom:10px;">
@@ -163,9 +163,16 @@
           </div>
         </a>
         <div class="plan-list-actions">
+          {% if not loop.first %}
+          <button class="btn-icon" title="Nach oben verschieben" onclick="reorderPlan({{ p.id }}, 'up')">↑</button>
+          {% endif %}
+          {% if not loop.last %}
+          <button class="btn-icon" title="Nach unten verschieben" onclick="reorderPlan({{ p.id }}, 'down')">↓</button>
+          {% endif %}
           <button class="btn-icon" title="Umbenennen"
                   onclick="renamePlan({{ p.id }}, document.getElementById('plan-name-{{ p.id }}').textContent)">✏️</button>
           <form action="{{ url_for('delete_plan', plan_id=p.id) }}" method="POST" style="display:inline"
+                data-no-intercept="1"
                 onsubmit="return confirm('Plan wirklich löschen? Dies kann nicht rückgängig gemacht werden.')">
             <button type="submit" class="btn-icon" title="Löschen">🗑️</button>
           </form>

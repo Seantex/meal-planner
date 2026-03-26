@@ -20,16 +20,19 @@ function hidePageLoader() {
   if (el) el.classList.remove('visible');
 }
 
-// Show loader on all POST form submissions
+// Show loader on all POST form submissions (prevent → paint → submit for reliable animation)
 document.addEventListener('submit', function(e) {
   const form = e.target;
-  if (form.method && form.method.toLowerCase() === 'post') {
-    const btn = form.querySelector('button[type="submit"]');
-    const label = btn ? btn.textContent.trim() : '';
-    if (label.includes('Einkaufsliste')) showPageLoader('Einkaufsliste wird erstellt…');
-    else if (label.includes('Wochenplan') || label.includes('Erstellen')) showPageLoader('Wochenplan wird erstellt…');
-    else showPageLoader('Wird verarbeitet…');
-  }
+  if (form.dataset.submitting || form.dataset.noIntercept) return;
+  if (!form.method || form.method.toLowerCase() !== 'post') return;
+  e.preventDefault();
+  const btn = form.querySelector('button[type="submit"]');
+  const label = btn ? btn.textContent.trim() : '';
+  if (label.includes('Einkaufsliste')) showPageLoader('Einkaufsliste wird erstellt…');
+  else if (label.includes('generieren') || label.includes('Wochenplan')) showPageLoader('Wochenplan wird erstellt…');
+  else showPageLoader('Wird verarbeitet…');
+  form.dataset.submitting = '1';
+  requestAnimationFrame(() => requestAnimationFrame(() => form.submit()));
 }, true);
 
 // Show loader on slow navigation links (overview, shopping)
@@ -747,7 +750,7 @@ async function confirmSlotModal() {
     if (data.success) {
       closeSlotModal();
       showPageLoader('Tag wird hinzugefügt…');
-      location.reload();
+      requestAnimationFrame(() => requestAnimationFrame(() => location.reload()));
     } else {
       showToast(data.error || 'Fehler', 'error');
     }
@@ -845,6 +848,16 @@ async function changePortions(slotId, planId, delta, btn) {
     valEl.textContent = current;
   }
   btn.disabled = false;
+}
+
+async function reorderPlan(planId, direction) {
+  const data = await apiPost(`/plan/${planId}/reorder`, { direction });
+  if (data.success) {
+    showPageLoader('Wird sortiert…');
+    requestAnimationFrame(() => requestAnimationFrame(() => location.reload()));
+  } else {
+    showToast(data.error || 'Fehler beim Verschieben', 'error');
+  }
 }
 
 async function renamePlan(planId, currentName) {

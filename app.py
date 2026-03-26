@@ -813,6 +813,19 @@ def rename_plan(plan_id):
     return jsonify({"success": True})
 
 
+@app.route("/plan/<int:plan_id>/reorder", methods=["POST"])
+@login_required
+def reorder_plan(plan_id):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    direction = (request.get_json(silent=True) or {}).get("direction")
+    if direction not in ("up", "down"):
+        return jsonify({"error": "Ungültige Richtung"}), 400
+    db.reorder_plan(plan_id, _uid(), direction)
+    return jsonify({"success": True})
+
+
 @app.route("/plan/<int:plan_id>/delete", methods=["POST"])
 @login_required
 def delete_plan(plan_id):
