@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v64
+   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v65
    Apple-grade dark UI · Cursor spotlight · Spring physics · Live aurora
    Canvas particles · Custom cursor · Text scramble · Maximum effects
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -2282,17 +2282,19 @@ input[type="radio"] {
   accent-color: var(--p);
 }
 
-/* ── Mobile: spotlight pulses centered (no cursor on touch) ─────────────── */
-@media (hover: none) {
+/* ── Mobile/touch: spotlight pulses centered ────────────────────────────── */
+/* Use pointer:coarse (most reliable for touch screens) */
+@media (pointer: coarse), (hover: none) {
   #cursor-spotlight {
     --cx: 50%;
     --cy: 46%;
-    animation: mobile-pulse 3s ease-in-out infinite;
+    animation: mobile-pulse 2.8s ease-in-out infinite !important;
   }
 }
 @keyframes mobile-pulse {
-  0%, 100% { opacity: .65; transform: scale(1);    }
-  50%       { opacity: 1;   transform: scale(1.18); }
+  0%   { opacity: 0.15; }
+  50%  { opacity: 0.85; }
+  100% { opacity: 0.15; }
 }
 
 /* ── Selection color ────────────────────────────────────────────────────── */
