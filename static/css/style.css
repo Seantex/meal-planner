@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v62
+   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v63
    Apple-grade dark UI · Cursor spotlight · Spring physics · Live aurora
    Canvas particles · Custom cursor · Text scramble · Maximum effects
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -180,19 +180,19 @@ body::after {
   z-index: 2;
   pointer-events: none;
   background:
-    radial-gradient(200px circle at var(--cx,50%) var(--cy,50%),
-      rgba(155,92,246,.85) 0%,
-      rgba(155,92,246,.55) 25%,
-      rgba(155,92,246,.2) 55%,
-      transparent 75%
+    radial-gradient(100px circle at var(--cx,50%) var(--cy,50%),
+      rgba(155,92,246,.9)  0%,
+      rgba(155,92,246,.55) 30%,
+      rgba(155,92,246,.18) 60%,
+      transparent 80%
     ),
-    radial-gradient(500px circle at var(--cx,50%) var(--cy,50%),
-      rgba(155,92,246,.25) 0%,
-      rgba(244,114,182,.18) 40%,
-      transparent 70%
+    radial-gradient(280px circle at var(--cx,50%) var(--cy,50%),
+      rgba(155,92,246,.22) 0%,
+      rgba(244,114,182,.14) 45%,
+      transparent 72%
     ),
-    radial-gradient(900px circle at var(--cx,50%) var(--cy,50%),
-      rgba(244,114,182,.1) 0%,
+    radial-gradient(520px circle at var(--cx,50%) var(--cy,50%),
+      rgba(244,114,182,.07) 0%,
       transparent 65%
     );
   mix-blend-mode: screen;
@@ -1797,14 +1797,13 @@ input::placeholder { color: var(--t3); }
   border-radius: var(--r5);
   background: rgba(155,92,246,.12);
   border: 1px solid rgba(155,92,246,.35);
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--p-l);
   margin-bottom: 24px;
   animation: fade-up .6s var(--spring) .1s both;
-  /* Glow effects */
   text-shadow: 0 0 18px rgba(180,140,250,.8), 0 0 40px rgba(155,92,246,.4);
   box-shadow:
     0 0 24px rgba(155,92,246,.22),
@@ -2170,10 +2169,30 @@ input::placeholder { color: var(--t3); }
   font-family: monospace;
 }
 
-/* ── Hero enhancements ───────────────────────────────────────────────────── */
+/* ── Hero enhancements — permanent bright sphere ─────────────────────────── */
 .hero-glow {
-  background: radial-gradient(circle,rgba(155,92,246,.22) 0%,rgba(244,114,182,.1) 50%,transparent 70%);
-  box-shadow: 0 0 120px rgba(155,92,246,.25);
+  width: 680px !important;
+  height: 680px !important;
+  background:
+    radial-gradient(circle at 50% 42%,
+      rgba(155,92,246,.72) 0%,
+      rgba(155,92,246,.42) 26%,
+      rgba(200,100,240,.22) 46%,
+      rgba(244,114,182,.14) 60%,
+      transparent 72%
+    ) !important;
+  box-shadow:
+    0 0 60px  rgba(155,92,246,.55),
+    0 0 140px rgba(155,92,246,.3),
+    0 0 320px rgba(155,92,246,.15),
+    0 0 500px rgba(244,114,182,.08) !important;
+  filter: blur(1px);
+}
+
+/* Keep the pulse animation prominent */
+@keyframes hero-pulse {
+  0%,100% { transform:translate(-50%,-50%) scale(1);    opacity:.85; }
+  50%      { transform:translate(-50%,-50%) scale(1.12); opacity:1;   }
 }
 
 /* ── Reveal: also basic .reveal ────────────────────────────────────────── */
@@ -2197,11 +2216,36 @@ input::placeholder { color: var(--t3); }
     0 0 160px rgba(155,92,246,.08);
 }
 
-/* ── Staggered reveal delay helpers ────────────────────────────────────── */
-.reveal-delay-1 { transition-delay: .05s; }
-.reveal-delay-2 { transition-delay: .15s; }
-.reveal-delay-3 { transition-delay: .25s; }
-.reveal-delay-4 { transition-delay: .35s; }
+/* ── Staggered reveal delay helpers (override !important from earlier rule) */
+.reveal-delay-1 { transition-delay: .08s  !important; }
+.reveal-delay-2 { transition-delay: .22s  !important; }
+.reveal-delay-3 { transition-delay: .38s  !important; }
+.reveal-delay-4 { transition-delay: .54s  !important; }
+
+/* ── Dashboard cards: Apple-style dramatic fly-in ────────────────────────── */
+/* Override reveal variants specifically for .card so they drop in from below */
+.js-ready .card.reveal-left {
+  transform: translateX(-60px) translateY(30px) scale(.97);
+  filter: blur(8px);
+  transition: opacity 1s var(--smooth), transform 1s var(--smooth), filter .9s var(--smooth);
+}
+.js-ready .card.reveal-right {
+  transform: translateX(60px) translateY(30px) scale(.97);
+  filter: blur(8px);
+  transition: opacity 1s var(--smooth), transform 1s var(--smooth), filter .9s var(--smooth);
+}
+.js-ready .card.reveal {
+  transform: translateY(50px) scale(.96);
+  filter: blur(8px);
+  transition: opacity 1s var(--smooth), transform 1s var(--smooth), filter .9s var(--smooth);
+}
+.js-ready .card.reveal.visible,
+.js-ready .card.reveal-left.visible,
+.js-ready .card.reveal-right.visible {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
 
 /* ── Enhanced hero stats ─────────────────────────────────────────────────── */
 .hero-stat-num {
@@ -2230,6 +2274,12 @@ select:focus {
 .hero-subtitle,
 .hero-glow {
   will-change: transform;
+}
+
+/* ── Checkbox & radio: purple theme color ───────────────────────────────── */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--p);
 }
 
 /* ── Selection color ────────────────────────────────────────────────────── */
