@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Meal Planner{% endblock %} – Wochenplaner</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=21">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=22">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <meta name="theme-color" content="#7c3aed">
@@ -42,6 +42,11 @@
         </a>
         {% endif %}
       </div>
+
+      <!-- Mobile Logout (nur auf kleinen Screens) -->
+      {% if current_user.is_authenticated %}
+      <a href="{{ url_for('logout') }}" class="nav-mobile-logout" title="Abmelden">🚪</a>
+      {% endif %}
 
       <!-- User-Menü -->
       {% if current_user.is_authenticated %}

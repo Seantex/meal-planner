@@ -1169,6 +1169,8 @@ details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
   .brand-text { display: none; }  /* Nur Emoji-Icon auf sehr kleinen Screens */
   .nav-links { gap: 0; }
   .nav-link { font-size: .75rem; padding: 5px 6px; }
+  .nav-user { display: none; }          /* Dropdown auf Mobile ausblenden */
+  .nav-mobile-logout { display: flex; } /* Stattdessen direktes Logout-Icon */
 }
 
 /* ── Auth Pages ──────────────────────────────────────────────────────────────── */
@@ -1183,6 +1185,15 @@ details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
 .auth-divider::before, .auth-divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--c-border); }
 .auth-divider::before { left: 0; }
 .auth-divider::after { right: 0; }
+
+/* ── Nav Mobile Logout ───────────────────────────────────────────────────────── */
+.nav-mobile-logout {
+  display: none; align-items: center; justify-content: center;
+  font-size: 1.1rem; padding: 6px 8px; border-radius: var(--r-sm);
+  text-decoration: none; color: var(--c-text-muted);
+  transition: background var(--transition), color var(--transition);
+}
+.nav-mobile-logout:hover { background: rgba(124,58,237,.08); color: var(--c-primary); }
 
 /* ── Nav User-Menü ────────────────────────────────────────────────────────────── */
 .nav-user { display: flex; align-items: center; gap: 12px; margin-left: auto; }
