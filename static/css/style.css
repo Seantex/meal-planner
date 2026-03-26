@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v65
+   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v66
    Apple-grade dark UI · Cursor spotlight · Spring physics · Live aurora
    Canvas particles · Custom cursor · Text scramble · Maximum effects
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -173,12 +173,13 @@ body::after {
   background-size: 250px 250px;
 }
 
-/* ── Cursor spotlight — MAXIMUM BRIGHTNESS ──────────────────────────────── */
+/* ── Cursor spotlight — MAXIMUM BRIGHTNESS + PULSE ──────────────────────── */
 #cursor-spotlight {
   position: fixed;
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  animation: spotlight-breathe 3s ease-in-out infinite;
   background:
     radial-gradient(46px circle at var(--cx,50%) var(--cy,50%),
       rgba(155,92,246,.95) 0%,
@@ -196,6 +197,16 @@ body::after {
       transparent 68%
     );
   mix-blend-mode: screen;
+}
+
+@keyframes spotlight-breathe {
+  0%,100% { opacity: .45; }
+  50%      { opacity: 1;   }
+}
+
+/* Mobile: keep centered */
+@media (pointer: coarse), (hover: none) {
+  #cursor-spotlight { --cx: 50%; --cy: 46%; }
 }
 
 /* ── Page Loader ────────────────────────────────────────────────────────── */
@@ -2222,30 +2233,29 @@ input::placeholder { color: var(--t3); }
 .reveal-delay-3 { transition-delay: .38s  !important; }
 .reveal-delay-4 { transition-delay: .54s  !important; }
 
-/* ── Dashboard cards: Apple-style dramatic fly-in ────────────────────────── */
-/* Override reveal variants specifically for .card so they drop in from below */
-.js-ready .card.reveal-left {
-  transform: translateX(-60px) translateY(30px) scale(.97);
-  filter: blur(8px);
-  transition: opacity 1s var(--smooth), transform 1s var(--smooth), filter .9s var(--smooth);
+/* ── Dashboard card fly-in via keyframes (reliable for in-viewport elements) */
+@keyframes card-fly-left {
+  from { opacity:0; transform:translateX(-70px) translateY(18px) scale(.95); filter:blur(10px); }
+  to   { opacity:1; transform:none; filter:none; }
 }
-.js-ready .card.reveal-right {
-  transform: translateX(60px) translateY(30px) scale(.97);
-  filter: blur(8px);
-  transition: opacity 1s var(--smooth), transform 1s var(--smooth), filter .9s var(--smooth);
+@keyframes card-fly-right {
+  from { opacity:0; transform:translateX(70px) translateY(18px) scale(.95); filter:blur(10px); }
+  to   { opacity:1; transform:none; filter:none; }
 }
-.js-ready .card.reveal {
-  transform: translateY(50px) scale(.96);
-  filter: blur(8px);
-  transition: opacity 1s var(--smooth), transform 1s var(--smooth), filter .9s var(--smooth);
+@keyframes card-fly-up {
+  from { opacity:0; transform:translateY(60px) scale(.94); filter:blur(10px); }
+  to   { opacity:1; transform:none; filter:none; }
 }
-.js-ready .card.reveal.visible,
-.js-ready .card.reveal-left.visible,
-.js-ready .card.reveal-right.visible {
-  opacity: 1;
-  transform: none;
-  filter: none;
-}
+
+/* Keyframe animation overrides the transition-based approach for .card elements */
+.card.reveal-left  { animation: card-fly-left  1s var(--smooth) .1s  both; }
+.card.reveal       { animation: card-fly-up    1s var(--smooth) .28s both; }
+.card.reveal-right { animation: card-fly-right 1s var(--smooth) .46s both; }
+
+/* Prevent the transition-based .js-ready rules from fighting the animation */
+.js-ready .card.reveal-left,
+.js-ready .card.reveal,
+.js-ready .card.reveal-right { transition: none; }
 
 /* ── Enhanced hero stats ─────────────────────────────────────────────────── */
 .hero-stat-num {
@@ -2282,20 +2292,7 @@ input[type="radio"] {
   accent-color: var(--p);
 }
 
-/* ── Mobile/touch: spotlight pulses centered ────────────────────────────── */
-/* Use pointer:coarse (most reliable for touch screens) */
-@media (pointer: coarse), (hover: none) {
-  #cursor-spotlight {
-    --cx: 50%;
-    --cy: 46%;
-    animation: mobile-pulse 2.8s ease-in-out infinite !important;
-  }
-}
-@keyframes mobile-pulse {
-  0%   { opacity: 0.15; }
-  50%  { opacity: 0.85; }
-  100% { opacity: 0.15; }
-}
+/* (mobile spotlight pulse moved to #cursor-spotlight definition above) */
 
 /* ── Selection color ────────────────────────────────────────────────────── */
 ::selection {
