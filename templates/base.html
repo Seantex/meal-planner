@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Meal Planner{% endblock %} – Wochenplaner</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=15">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=16">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <meta name="theme-color" content="#7c3aed">
@@ -13,6 +13,12 @@
   <meta name="apple-mobile-web-app-title" content="Meal Planner">
 </head>
 <body>
+  <!-- Page Loader -->
+  <div id="page-loader" class="page-loader" aria-hidden="true">
+    <div class="page-loader-ring"></div>
+    <span class="page-loader-text" id="page-loader-text">Wird geladen…</span>
+  </div>
+
   <!-- Navigation -->
   <nav class="navbar">
     <div class="nav-inner">
@@ -95,7 +101,7 @@
     <p>Meal Planner · Für 2 Personen · Aktuelle Woche</p>
   </footer>
 
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}?v=2"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

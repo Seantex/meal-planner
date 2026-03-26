@@ -550,6 +550,31 @@ def add_plan_slot(plan_id):
     note = (data.get("note") or "").strip()
     leftovers = bool(data.get("leftovers", False))
     slot_id = db.add_plan_slot(plan_id, label, note=note, leftovers=leftovers)
+
+    # Generate fallback suggestions for the new slot immediately
+    deals = db.get_deals()
+    never_again = [n["recipe_id"] for n in db.get_never_again(_uid())]
+    recipes = planner.load_recipes(user_id=_uid())
+    available = [r for r in recipes if r["id"] not in never_again]
+    favorites = [f["recipe_id"] for f in db.get_favorites(_uid())]
+    all_suggestions = db.get_all_suggestions(plan_id)
+    selections = db.get_selections(plan_id)
+    exclude_ids = set(selections.values())
+    for slot_sugs in all_suggestions.values():
+        for s in slot_sugs:
+            rid = s["recipe_id"] if isinstance(s, dict) else s
+            exclude_ids.add(rid)
+    slot_obj = {"id": slot_id, "label": label, "type": "weekday",
+                "note": note, "leftovers": leftovers}
+    suggestions = planner._get_fallback_suggestions(
+        slot=slot_obj, recipes=available, deals=deals, favorites=favorites,
+        already_suggested=list(exclude_ids), count=3,
+    )
+    db.save_suggestions(plan_id, slot_id, [
+        {"recipe_id": s["recipe"]["id"], "reason": s["reason"], "deal_matches": s["deal_matches"]}
+        for s in suggestions
+    ])
+
     return jsonify({"success": True, "slot_id": slot_id, "label": label,
                     "note": note, "leftovers": leftovers})
 
@@ -593,9 +618,19 @@ def regenerate_slot(plan_id, meal_slot):
     recipes = planner.load_recipes(user_id=_uid())
     available = [r for r in recipes if r["id"] not in never_again]
 
-    slot_obj = next((s for s in MEAL_SLOTS if s["id"] == meal_slot), None)
-    if not slot_obj:
-        return jsonify({"error": "Slot nicht gefunden"}), 404
+    # Look up slot from DB plan slots (supports dynamic date-specific slot IDs)
+    plan_slots = db.get_plan_slots(plan_id)
+    slot_row = next((s for s in plan_slots if s["slot_id"] == meal_slot), None)
+    if not slot_row:
+        # Fallback to static MEAL_SLOTS
+        static = next((s for s in MEAL_SLOTS if s["id"] == meal_slot), None)
+        if not static:
+            return jsonify({"error": "Slot nicht gefunden"}), 404
+        slot_obj = static
+    else:
+        slot_obj = {"id": slot_row["slot_id"], "label": slot_row["label"],
+                    "type": slot_row["type"], "note": slot_row["note"],
+                    "leftovers": bool(slot_row["leftovers"])}
 
     all_suggestions = db.get_all_suggestions(plan_id)
     selections = db.get_selections(plan_id)
@@ -770,10 +805,13 @@ def shopping(plan_id):
     items = db.get_shopping_list(plan_id)
     selections = db.get_selections(plan_id)
 
+    plan_slots = db.get_plan_slots(plan_id)
     selected_recipes = []
-    for slot in MEAL_SLOTS:
+    for slot_row in plan_slots:
+        slot = {"id": slot_row["slot_id"], "label": slot_row["label"],
+                "leftovers": bool(slot_row["leftovers"])}
         rid = selections.get(slot["id"])
-        if rid:
+        if rid and rid != "SKIPPED":
             r = planner.get_recipe(rid, user_id=_uid())
             if r:
                 portions = 3 if slot.get("leftovers") else 2
@@ -1251,10 +1289,13 @@ def plan_overview(plan_id):
         return redirect(url_for("index"))
 
     selections = db.get_selections(plan_id)
+    plan_slots = db.get_plan_slots(plan_id)
     selected_recipes = []
-    for slot in MEAL_SLOTS:
+    for slot_row in plan_slots:
+        slot = {"id": slot_row["slot_id"], "label": slot_row["label"],
+                "leftovers": bool(slot_row["leftovers"])}
         rid = selections.get(slot["id"])
-        if rid:
+        if rid and rid != "SKIPPED":
             r = planner.get_recipe(rid, user_id=_uid())
             if r:
                 selected_recipes.append({"slot": slot, "recipe": r})
@@ -1263,7 +1304,7 @@ def plan_overview(plan_id):
 
     return render_template(
         "overview.html", plan=plan, selected_recipes=selected_recipes,
-        nutrition=nutrition_data, total_slots=len(MEAL_SLOTS),
+        nutrition=nutrition_data, total_slots=len(plan_slots),
         selected_count=len(selected_recipes),
     )
 

@@ -4,7 +4,47 @@
 
 'use strict';
 
-// ── Loading-State für Formulare ────────────────────────────────────────────────
+// ── Page Loader ────────────────────────────────────────────────────────────────
+
+function showPageLoader(text) {
+  const el = document.getElementById('page-loader');
+  const txt = document.getElementById('page-loader-text');
+  if (!el) return;
+  if (txt && text) txt.textContent = text;
+  el.classList.add('visible');
+}
+
+function hidePageLoader() {
+  const el = document.getElementById('page-loader');
+  if (el) el.classList.remove('visible');
+}
+
+// Show loader on all POST form submissions
+document.addEventListener('submit', function(e) {
+  const form = e.target;
+  if (form.method && form.method.toLowerCase() === 'post') {
+    const btn = form.querySelector('button[type="submit"]');
+    const label = btn ? btn.textContent.trim() : '';
+    if (label.includes('Einkaufsliste')) showPageLoader('Einkaufsliste wird erstellt…');
+    else if (label.includes('Wochenplan') || label.includes('Erstellen')) showPageLoader('Wochenplan wird erstellt…');
+    else showPageLoader('Wird verarbeitet…');
+  }
+}, true);
+
+// Show loader on slow navigation links (overview, shopping)
+document.addEventListener('click', function(e) {
+  const a = e.target.closest('a[href]');
+  if (!a) return;
+  const href = a.getAttribute('href') || '';
+  if (href.includes('/overview') || href.includes('/shopping/') || href.includes('/plan/new')) {
+    showPageLoader('Wird geladen…');
+  }
+}, true);
+
+// Hide loader when page becomes visible again (back/forward cache)
+window.addEventListener('pageshow', hidePageLoader);
+
+// ── Loading-State für Formulare (legacy, button-only) ─────────────────────────
 
 function setLoading(form, loadingText) {
   const btn = form.querySelector('button[type="submit"]');
@@ -13,7 +53,6 @@ function setLoading(form, loadingText) {
     btn.dataset.originalText = btn.textContent;
     btn.textContent = loadingText || '⏳ Bitte warten…';
   }
-  // Timeout-Fallback: nach 60s wieder aktivieren falls kein Reload
   setTimeout(() => {
     if (btn && btn.disabled) {
       btn.disabled = false;
@@ -553,8 +592,16 @@ const DAY_NAMES = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samsta
 let _dayGridOffset = 0;   // how many days shown so far
 let _dayGridStart  = null; // start Date
 
+function _localDateKey(d) {
+  // Use local date parts to avoid UTC offset shifting the date (e.g. CET = UTC+1)
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function _addDayRow(grid, d, checked) {
-  const key     = d.toISOString().slice(0, 10);
+  const key     = _localDateKey(d);
   const dayName = DAY_NAMES[d.getDay() === 0 ? 6 : d.getDay() - 1];
   const isWeekend    = d.getDay() === 0 || d.getDay() === 6;
   const defaultMittag = isWeekend && checked;
