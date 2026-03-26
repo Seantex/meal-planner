@@ -430,7 +430,7 @@ class TextScramble {
         obs.unobserve(e.target);
       }
     });
-  }, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
+  }, { threshold: 0.08, rootMargin: '0px 0px -60px 0px' });
   function go() {
     // Small timeout so js-ready styles are painted before we start observing
     setTimeout(() => {
@@ -449,6 +449,23 @@ class TextScramble {
   const upd = () => nav.classList.toggle('scrolled', window.scrollY > 20);
   window.addEventListener('scroll', upd, { passive: true });
   upd();
+})();
+
+// ── Scroll arrow: fade out when user starts scrolling ────────────────────────
+(function initScrollArrow() {
+  const arrow = document.querySelector('.scroll-arrow');
+  if (!arrow) return;
+  const hide = () => {
+    if (window.scrollY > 60) {
+      arrow.style.opacity = '0';
+      arrow.style.pointerEvents = 'none';
+    } else {
+      // Only restore if animation has already played (after 2s)
+      arrow.style.opacity = '';
+      arrow.style.pointerEvents = '';
+    }
+  };
+  window.addEventListener('scroll', hide, { passive: true });
 })();
 
 // ── Click Explosion (20 sparks) ───────────────────────────────────────────────
