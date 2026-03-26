@@ -77,24 +77,31 @@ _WEEKDAY_SHORT  = ["mo",    "di",       "mi",       "do",         "fr",      "sa
 def _parse_slot_config(form, week_start: str):
     """
     Liest aus dem Formular die ausgewählten Tage + Mittag/Abend-Auswahl.
+    Scannt alle day_YYYY-MM-DD Keys direkt — unabhängig von week_start,
+    damit Browser-Caching des alten JS (UTC-Shift) keinen Einfluss hat.
     Gibt eine Liste von Slot-Dicts zurück oder None (→ Standard MEAL_SLOTS).
     """
-    try:
-        start_date = date.fromisoformat(week_start)
-    except (ValueError, AttributeError):
+    import re as _re
+    # Alle eingereichten day_YYYY-MM-DD Schlüssel finden
+    day_keys = sorted(
+        m.group(1)
+        for key in form.keys()
+        for m in [_re.match(r'^day_(\d{4}-\d{2}-\d{2})$', key)]
+        if m
+    )
+    if not day_keys:
         return None
 
     slots = []
     sort_idx = 0
-    # Bis zu 14 Tage erlauben (2 Wochen)
-    for offset in range(14):
-        d = start_date + timedelta(days=offset)
-        day_key = d.strftime("%Y-%m-%d")
-        if f"day_{day_key}" not in form:
+    for day_key in day_keys:
+        try:
+            d = date.fromisoformat(day_key)
+        except ValueError:
             continue
         day_name = _WEEKDAY_NAMES[d.weekday()]
         short    = _WEEKDAY_SHORT[d.weekday()]
-        meal_types = form.getlist(f"meal_{day_key}")  # ['mittag','abend'] oder subset
+        meal_types = form.getlist(f"meal_{day_key}")
 
         if "mittag" in meal_types:
             slots.append({
@@ -107,7 +114,6 @@ def _parse_slot_config(form, week_start: str):
             })
             sort_idx += 1
         if "abend" in meal_types:
-            # Reste nur wenn auch das nächste Mittag ausgewählt ist → einfachheitshalber immer False hier
             slots.append({
                 "id":        f"{short}_abend_{day_key}",
                 "label":     f"{day_name} Abend",
@@ -1292,18 +1298,30 @@ def plan_overview(plan_id):
 
     selections = db.get_selections(plan_id)
     plan_slots = db.get_plan_slots(plan_id)
+    slot_map = {s["slot_id"]: s for s in plan_slots}
+
     selected_recipes = []
-    for slot_row in plan_slots:
-        slot = {"id": slot_row["slot_id"], "label": slot_row["label"],
-                "leftovers": bool(slot_row["leftovers"])}
-        rid = selections.get(slot["id"])
-        if rid and rid != "SKIPPED":
-            r = planner.get_recipe(rid, user_id=_uid())
-            if r:
-                selected_recipes.append({"slot": slot, "recipe": r})
+    # Iterate selections directly — resilient regardless of slot ID format
+    for slot_id, recipe_id in selections.items():
+        if not recipe_id or recipe_id == "SKIPPED":
+            continue
+        r = planner.get_recipe(recipe_id, user_id=_uid())
+        if not r:
+            continue
+        slot_row = slot_map.get(slot_id, {})
+        slot = {
+            "id": slot_id,
+            "label": slot_row.get("label", slot_id),
+            "note": slot_row.get("note", ""),
+            "leftovers": bool(slot_row.get("leftovers", False)),
+        }
+        selected_recipes.append({"slot": slot, "recipe": r})
+
+    # Sort by plan_slots order
+    slot_order = {s["slot_id"]: i for i, s in enumerate(plan_slots)}
+    selected_recipes.sort(key=lambda x: slot_order.get(x["slot"]["id"], 999))
 
     nutrition_data = planner.get_weekly_nutrition(plan_id, user_id=_uid())
-    # completed = slots that have any selection (including SKIPPED)
     completed_count = sum(1 for s in plan_slots if selections.get(s["slot_id"]))
 
     return render_template(

@@ -12,6 +12,7 @@ function showPageLoader(text) {
   if (!el) return;
   if (txt && text) txt.textContent = text;
   el.classList.add('visible');
+  el.getBoundingClientRect(); // force repaint before navigation
 }
 
 function hidePageLoader() {
