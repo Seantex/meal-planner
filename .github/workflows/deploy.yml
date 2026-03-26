@@ -10,7 +10,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render deploy via API
+      - name: Trigger Render deploy
+        id: trigger
         run: |
           echo "Triggering Render deployment..."
           RESPONSE=$(curl -s -w "\n%{http_code}" \
@@ -18,21 +19,40 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
             "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
-            -d '')
+            -d '{"clearCache":"clear"}')
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -1)
           echo "HTTP: $HTTP_CODE"
           echo "Response: $BODY"
           if [ "$HTTP_CODE" = "201" ]; then
-            echo "✅ Deploy erfolgreich ausgelöst!"
+            echo "✅ Deploy ausgelöst!"
+            DEPLOY_ID=$(echo "$BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+            echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
           else
-            echo "⚠️  Deploy returned $HTTP_CODE – bitte Render Dashboard prüfen"
+            echo "⚠️  HTTP $HTTP_CODE — trying without clearCache..."
+            RESPONSE2=$(curl -s -w "\n%{http_code}" \
+              -X POST \
+              -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+              -d '')
+            HTTP_CODE2=$(echo "$RESPONSE2" | tail -1)
+            echo "Retry HTTP: $HTTP_CODE2"
           fi
 
-      - name: Wait for deploy and verify
+      - name: Wait for deploy to complete
         run: |
-          echo "Warte 3 Minuten auf Deploy..."
-          sleep 180
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 \
-            "https://meal-planner-fjih.onrender.com/health")
-          echo "Server status nach Deploy: $STATUS"
+          echo "Warte auf Deploy (max. 8 Minuten)..."
+          for i in $(seq 1 16); do
+            sleep 30
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+              "https://meal-planner-fjih.onrender.com/health" 2>/dev/null || echo "000")
+            echo "Check $i/16: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Server antwortet! Deploy wahrscheinlich fertig."
+              break
+            fi
+          done
+          # Finale Prüfung
+          FINAL=$(curl -s --max-time 30 "https://meal-planner-fjih.onrender.com/health" 2>/dev/null)
+          echo "Final health: $FINAL"
