@@ -150,17 +150,27 @@
     </div>
     <div class="card-body" style="padding:0;">
       {% for p in recent_plans %}
-      <a href="{{ url_for('planning', plan_id=p.id) }}" class="plan-list-item {% if loop.first %}plan-list-item--active{% endif %}">
-        <div class="plan-list-info">
-          <span class="plan-list-date">ab {{ p.week_start }}</span>
-          {% if p.status == 'done' %}
-            <span class="badge badge--green" style="font-size:.72rem;">Abgeschlossen</span>
-          {% else %}
-            <span class="badge badge--blue" style="font-size:.72rem;">In Bearbeitung</span>
-          {% endif %}
+      <div class="plan-list-item {% if loop.first %}plan-list-item--active{% endif %}">
+        <a href="{{ url_for('planning', plan_id=p.id) }}" class="plan-list-link">
+          <div class="plan-list-info">
+            <span class="plan-list-name" id="plan-name-{{ p.id }}">{{ p.name if p.name else 'Wochenplan' }}</span>
+            <span class="plan-list-date">ab {{ p.week_start }}</span>
+            {% if p.status == 'done' %}
+              <span class="badge badge--green" style="font-size:.72rem;">Abgeschlossen</span>
+            {% else %}
+              <span class="badge badge--blue" style="font-size:.72rem;">In Bearbeitung</span>
+            {% endif %}
+          </div>
+        </a>
+        <div class="plan-list-actions">
+          <button class="btn-icon" title="Umbenennen"
+                  onclick="renamePlan({{ p.id }}, document.getElementById('plan-name-{{ p.id }}').textContent)">✏️</button>
+          <form action="{{ url_for('delete_plan', plan_id=p.id) }}" method="POST" style="display:inline"
+                onsubmit="return confirm('Plan wirklich löschen? Dies kann nicht rückgängig gemacht werden.')">
+            <button type="submit" class="btn-icon" title="Löschen">🗑️</button>
+          </form>
         </div>
-        <span class="plan-list-arrow">→</span>
-      </a>
+      </div>
       {% endfor %}
     </div>
   </section>

@@ -235,7 +235,7 @@ def logout():
 def index():
     db.init_db()
     plan_limit = _LIMITS.get("plan", 1)
-    recent_plans = db.get_recent_plans(_uid(), limit=plan_limit * 4)  # zeige ein paar Wochen
+    recent_plans = db.get_recent_plans(_uid(), limit=50)
     active_plan = recent_plans[0] if recent_plans else None
     deals = db.get_deals()
     deals_fresh = db.deals_are_fresh()
@@ -798,6 +798,30 @@ def finish_plan(plan_id):
     planner.generate_shopping_list(plan_id, user_id=_uid())
     flash("✓ Wochenplan abgeschlossen! Deine Einkaufsliste ist bereit.", "success")
     return redirect(url_for("shopping", plan_id=plan_id))
+
+
+@app.route("/plan/<int:plan_id>/rename", methods=["POST"])
+@login_required
+def rename_plan(plan_id):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    name = (request.get_json(silent=True) or {}).get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Name darf nicht leer sein"}), 400
+    db.rename_plan(plan_id, name)
+    return jsonify({"success": True})
+
+
+@app.route("/plan/<int:plan_id>/delete", methods=["POST"])
+@login_required
+def delete_plan(plan_id):
+    plan = db.get_plan(plan_id, _uid())
+    if not plan:
+        return jsonify({"error": "Nicht gefunden"}), 404
+    db.delete_plan(plan_id)
+    flash("Plan gelöscht.", "success")
+    return redirect(url_for("index"))
 
 
 # ── Einkaufsliste ──────────────────────────────────────────────────────────────

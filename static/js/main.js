@@ -746,6 +746,7 @@ async function confirmSlotModal() {
     const data = await apiPost(`/plan/${planId}/slots`, { label, note, leftovers });
     if (data.success) {
       closeSlotModal();
+      showPageLoader('Tag wird hinzugefügt…');
       location.reload();
     } else {
       showToast(data.error || 'Fehler', 'error');
@@ -846,9 +847,23 @@ async function changePortions(slotId, planId, delta, btn) {
   btn.disabled = false;
 }
 
+async function renamePlan(planId, currentName) {
+  const newName = prompt('Neuer Name für diesen Plan:', currentName);
+  if (!newName || !newName.trim() || newName.trim() === currentName) return;
+  const data = await apiPost(`/plan/${planId}/rename`, { name: newName.trim() });
+  if (data.success) {
+    const el = document.getElementById(`plan-name-${planId}`);
+    if (el) el.textContent = newName.trim();
+    showToast('✓ Plan umbenannt');
+  } else {
+    showToast(data.error || 'Fehler beim Umbenennen', 'error');
+  }
+}
+
 function showPlanLoading() {
   const btn = document.getElementById("gen-btn");
   const loading = document.getElementById("plan-loading");
   if (btn) { btn.disabled = true; btn.textContent = "⏳ Wird generiert…"; }
   if (loading) loading.style.display = "block";
+  showPageLoader('Wochenplan wird erstellt…');
 }

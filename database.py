@@ -90,6 +90,13 @@ def init_db():
 
     if IS_POSTGRES:
         _init_postgres(conn)
+        # PostgreSQL migrations
+        cur = _cursor(conn)
+        try:
+            cur.execute("ALTER TABLE week_plans ADD COLUMN IF NOT EXISTS name TEXT DEFAULT ''")
+            conn.commit()
+        except Exception:
+            conn.rollback()
     else:
         c = conn.cursor()
         _init_sqlite(c)
@@ -487,6 +494,8 @@ def _migrate_schema(c):
     wp_cols = [r[1] for r in c.execute("PRAGMA table_info(week_plans)").fetchall()]
     if wp_cols and "default_persons" not in wp_cols:
         c.execute("ALTER TABLE week_plans ADD COLUMN default_persons INTEGER DEFAULT 2")
+    if wp_cols and "name" not in wp_cols:
+        c.execute("ALTER TABLE week_plans ADD COLUMN name TEXT DEFAULT ''")
 
     # week_plans: user_id Migration
     if wp_cols and "user_id" not in wp_cols:
@@ -928,6 +937,24 @@ def get_recent_plans(user_id: int, limit: int = 8) -> list:
 def finish_plan(plan_id: int):
     conn = get_db()
     _exec(conn, f"UPDATE week_plans SET status = 'done' WHERE id = {PH}", (plan_id,))
+    conn.commit()
+    conn.close()
+
+
+def rename_plan(plan_id: int, name: str):
+    conn = get_db()
+    _exec(conn, f"UPDATE week_plans SET name = {PH} WHERE id = {PH}", (name.strip(), plan_id))
+    conn.commit()
+    conn.close()
+
+
+def delete_plan(plan_id: int):
+    conn = get_db()
+    # Cascade-Löschen aller abhängigen Daten
+    for table in ["meal_selections", "meal_suggestions", "plan_slots",
+                  "slot_settings", "slot_cooked", "shopping_items"]:
+        _exec(conn, f"DELETE FROM {table} WHERE plan_id = {PH}", (plan_id,))
+    _exec(conn, f"DELETE FROM week_plans WHERE id = {PH}", (plan_id,))
     conn.commit()
     conn.close()
 

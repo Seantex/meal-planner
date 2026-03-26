@@ -1110,15 +1110,17 @@ details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
 /* ── Plan-Liste auf der Startseite ──────────────────────────────────────────── */
 .plan-list-item {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px; border-bottom: 1px solid var(--c-border);
-  text-decoration: none; color: var(--c-text); transition: background var(--transition);
+  padding: 10px 14px 10px 20px; border-bottom: 1px solid var(--c-border);
+  color: var(--c-text); transition: background var(--transition); gap: 8px;
 }
 .plan-list-item:last-child { border-bottom: none; }
 .plan-list-item:hover { background: rgba(124,58,237,.04); }
 .plan-list-item--active { background: rgba(124,58,237,.07); }
-.plan-list-info { display: flex; align-items: center; gap: 10px; }
-.plan-list-date { font-weight: 600; font-size: .9rem; }
-.plan-list-arrow { color: var(--c-primary); font-weight: 700; }
+.plan-list-link { flex: 1; text-decoration: none; color: inherit; min-width: 0; }
+.plan-list-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.plan-list-name { font-weight: 600; font-size: .9rem; }
+.plan-list-date { font-size: .8rem; color: var(--c-text-muted); }
+.plan-list-actions { display: flex; gap: 2px; flex-shrink: 0; }
 
 /* ── Print ───────────────────────────────────────────────────────────────────── */
 @media print {
