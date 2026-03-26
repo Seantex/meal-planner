@@ -4,54 +4,73 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anmelden – Meal Planner</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=10">
+  <style>html,body{background:#f0f2ff;}</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=30">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  <meta name="theme-color" content="#7c3aed">
+  <meta name="theme-color" content="#6d28d9">
 </head>
-<body class="auth-page">
-  <div class="auth-container">
+<body>
+  <!-- Background Orbs -->
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
+    <div class="bg-orb bg-orb--3"></div>
+  </div>
+
+  <div class="auth-wrap">
+    <!-- Brand -->
     <div class="auth-brand">
-      <span class="brand-icon" style="font-size:2.5rem;">🍽️</span>
-      <h1 class="auth-title">Meal Planner</h1>
-      <p class="auth-subtitle">Plane deine Woche mit KI und Supermarkt-Angeboten</p>
+      <span class="auth-brand-icon">🍽️</span>
+      <h1 class="auth-brand-name">Meal Planner</h1>
+      <p class="auth-brand-sub">Smarter kochen, besser leben</p>
     </div>
 
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert--{{ 'success' if category == 'success' else 'error' if category == 'error' else 'warning' }}" style="margin-bottom:16px;">
+          <div class="alert alert--{{ 'success' if category == 'success' else 'error' if category == 'error' else 'warning' }}"
+               style="margin-bottom:12px;max-width:400px;width:100%;">
             {{ message }}
           </div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
+    <!-- Card -->
     <div class="auth-card">
-      <h2 class="auth-card-title">Anmelden</h2>
+      <h2 class="auth-card-heading">Willkommen zurück</h2>
+      <p class="auth-card-sub">Melde dich an um weiterzumachen</p>
+
       <form method="POST" action="{{ url_for('login') }}">
         <div class="form-group">
           <label class="form-label">E-Mail</label>
-          <input type="email" name="email" class="form-control" placeholder="deine@email.at"
-                 required autofocus autocomplete="email">
+          <input type="email" name="email" class="form-control"
+                 placeholder="deine@email.at" required autofocus autocomplete="email">
         </div>
         <div class="form-group">
           <label class="form-label">Passwort</label>
-          <input type="password" name="password" class="form-control" placeholder="Passwort"
-                 required autocomplete="current-password">
+          <input type="password" name="password" class="form-control"
+                 placeholder="••••••••" required autocomplete="current-password">
         </div>
-        <div class="form-group" style="display:flex; align-items:center; gap:8px;">
-          <input type="checkbox" name="remember" id="remember" style="width:auto;">
-          <label for="remember" style="margin:0; font-weight:400; cursor:pointer;">Angemeldet bleiben</label>
+        <div class="auth-remember">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;color:var(--c-text-secondary);">
+            <input type="checkbox" name="remember" style="width:auto;accent-color:var(--c-primary);">
+            Angemeldet bleiben
+          </label>
+          <a href="{{ url_for('forgot_password') }}" class="auth-link" style="font-size:.82rem;">Passwort vergessen?</a>
         </div>
-        <button type="submit" class="btn btn--primary btn--big" style="width:100%; margin-top:8px;">
-          Anmelden
+        <button type="submit" class="btn btn--primary btn--big" style="width:100%;margin-top:4px;">
+          Anmelden →
         </button>
-        <div style="text-align:right; margin-top:8px;">
-          <a href="{{ url_for('forgot_password') }}" style="font-size:.82rem; color:var(--c-primary);">Passwort vergessen?</a>
-        </div>
       </form>
-      <div class="auth-divider">oder</div>
-      <a href="{{ url_for('register') }}" class="btn btn--outline btn--big" style="width:100%; text-align:center; display:block;">
+
+      <div class="auth-divider"><span>oder</span></div>
+
+      <a href="{{ url_for('register') }}" class="btn btn--outline btn--big" style="width:100%;justify-content:center;">
         Neues Konto erstellen
       </a>
     </div>

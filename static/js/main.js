@@ -3,6 +3,9 @@
    ═══════════════════════════════════════════════════════════════ */
 
 // ── Scroll Reveal ───────────────────────────────────────────────────────────
+// Only hide .reveal elements after JS confirms it's running (avoids blank page if JS fails)
+document.documentElement.classList.add('js-ready');
+
 (function initScrollReveal() {
   const obs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
@@ -11,7 +14,7 @@
         obs.unobserve(e.target);
       }
     });
-  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  }, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
 
   function observe() {
     document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
