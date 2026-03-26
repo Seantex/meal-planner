@@ -341,7 +341,9 @@ def new_plan():
         planner.generate_week_suggestions(plan_id, cravings, user_id=_uid())
         flash("✓ Wochenplan erstellt! Wähle jetzt deine Gerichte.", "success")
     except Exception as e:
-        flash(f"Fehler bei KI-Vorschlägen: {e}. Bitte API-Key prüfen.", "error")
+        import traceback
+        app.logger.error(f"generate_week_suggestions failed for plan {plan_id}: {traceback.format_exc()}")
+        flash(f"Fehler bei KI-Vorschlägen: {e}", "error")
 
     return redirect(url_for("planning", plan_id=plan_id))
 
