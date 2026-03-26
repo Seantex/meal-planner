@@ -1206,7 +1206,7 @@ details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
 .limit-badge { background: rgba(124,58,237,.08); color: var(--c-primary); font-size: .75rem; font-weight: 600; padding: 3px 8px; border-radius: 20px; border: 1px solid rgba(124,58,237,.15); cursor: default; }
 .nav-user-menu { position: relative; display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: var(--r-md); transition: background var(--transition); user-select: none; }
 .nav-user-menu:hover { background: rgba(124,58,237,.06); }
-.nav-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--grad-primary); color: #fff; font-weight: 700; font-size: .85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 60%, #06b6d4 100%); color: #fff; font-weight: 700; font-size: .85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .nav-name { font-size: .85rem; font-weight: 600; color: var(--c-text); }
 .nav-chevron { font-size: .65rem; color: var(--c-text-muted); transition: transform var(--transition); }
 .nav-user-menu.open .nav-chevron { transform: rotate(180deg); }
@@ -1228,7 +1228,7 @@ details[open] .nutrition-filter-toggle::after { transform: rotate(180deg); }
   display: flex; align-items: center; gap: 14px; padding: 16px 20px;
 }
 .admin-user-avatar {
-  width: 42px; height: 42px; border-radius: 50%; background: var(--grad-primary);
+  width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 60%, #06b6d4 100%);
   color: #fff; font-weight: 700; font-size: 1.1rem;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }

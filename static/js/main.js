@@ -275,21 +275,26 @@ function updateProgress() {
   const label = document.querySelector('.progress-label');
   if (label) label.textContent = `${done}/${total} Gerichte gewählt`;
 
-  // Abschluss-Alert anzeigen wenn fertig
-  if (done === total) {
-    const existing = document.querySelector('.finish-alert');
-    if (!existing && typeof PLAN_ID !== 'undefined') {
-      const alert = document.createElement('div');
-      alert.className = 'alert alert--success finish-alert';
-      alert.innerHTML = `
-        <strong>🎉 Alle Gerichte ausgewählt!</strong>
-        <form action="/plan/${PLAN_ID}/finish" method="POST" style="display:inline">
-          <button class="btn btn--primary btn--sm" type="submit">🛒 Einkaufsliste erstellen →</button>
-        </form>
-      `;
-      document.querySelector('.planning-grid').before(alert);
+  // Footer am unten aktualisieren
+  const footer = document.querySelector('.plan-footer');
+  if (footer && typeof PLAN_ID !== 'undefined') {
+    if (done === total) {
+      footer.classList.add('plan-footer--ready');
+      if (!footer.querySelector('.finish-form')) {
+        footer.innerHTML = `
+          <div class="finish-alert-inline"><strong>🎉 Alle Gerichte ausgewählt!</strong></div>
+          <form class="finish-form" action="/plan/${PLAN_ID}/finish" method="POST" style="display:inline">
+            <button class="btn btn--big btn--primary" type="submit">🛒 Einkaufsliste erstellen →</button>
+          </form>`;
+      }
+    } else {
+      footer.classList.remove('plan-footer--ready');
+      const hint = footer.querySelector('.plan-footer-hint');
+      if (hint) hint.textContent = `Noch ${total - done} Gericht(e) ausstehend`;
     }
   }
+  // Alten Top-Alert entfernen falls vorhanden
+  document.querySelector('.finish-alert')?.remove();
 }
 
 // ── Planning: Neue Vorschläge für einen Slot ───────────────────────────────────
