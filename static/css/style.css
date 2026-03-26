@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v61
+   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v62
    Apple-grade dark UI · Cursor spotlight · Spring physics · Live aurora
    Canvas particles · Custom cursor · Text scramble · Maximum effects
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1676,6 +1676,21 @@ input::placeholder { color: var(--t3); }
   animation: grad-shift 6s ease-in-out infinite;
 }
 
+/* Fix: when word-reveal splits h1 into spans, gradient must live on each span */
+.anim-grad-text .word {
+  background: linear-gradient(
+    135deg,
+    #c084fc 0%, #f472b6 25%, #22d3ee 50%, #c084fc 75%, #f472b6 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: word-in .7s cubic-bezier(.34,1.56,.64,1) forwards,
+             grad-shift 6s ease-in-out infinite;
+  animation-delay: calc(var(--i,0) * 0.09s + 0.15s), 0s;
+}
+
 @keyframes grad-shift {
   0%,100% { background-position: 0% 50%; }
   50%      { background-position: 100% 50%; }
@@ -1694,27 +1709,31 @@ input::placeholder { color: var(--t3); }
   to { opacity: 1; transform: none; }
 }
 
-/* ── Slide reveal variants ──────────────────────────────────────────────── */
+/* ── Scroll reveal — professional blur + slide (Apple / Linear style) ───── */
 .js-ready .reveal-left {
   opacity: 0;
-  transform: translateX(-40px);
-  transition: opacity .7s var(--smooth), transform .7s var(--smooth);
+  transform: translateX(-52px) translateY(12px);
+  filter: blur(6px);
+  transition: opacity .85s var(--smooth), transform .85s var(--smooth), filter .85s var(--smooth);
 }
 .js-ready .reveal-right {
   opacity: 0;
-  transform: translateX(40px);
-  transition: opacity .7s var(--smooth), transform .7s var(--smooth);
+  transform: translateX(52px) translateY(12px);
+  filter: blur(6px);
+  transition: opacity .85s var(--smooth), transform .85s var(--smooth), filter .85s var(--smooth);
 }
 .js-ready .reveal-scale {
   opacity: 0;
-  transform: scale(.92);
-  transition: opacity .7s var(--smooth), transform .7s var(--smooth);
+  transform: scale(.90) translateY(24px);
+  filter: blur(5px);
+  transition: opacity .85s var(--smooth), transform .85s var(--smooth), filter .85s var(--smooth);
 }
 .js-ready .reveal-left.visible,
 .js-ready .reveal-right.visible,
 .js-ready .reveal-scale.visible {
   opacity: 1;
   transform: none;
+  filter: none;
 }
 
 /* ── 3D Tilt card ───────────────────────────────────────────────────────── */
@@ -1774,10 +1793,10 @@ input::placeholder { color: var(--t3); }
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 16px;
+  padding: 7px 20px;
   border-radius: var(--r5);
-  background: rgba(155,92,246,.1);
-  border: 1px solid rgba(155,92,246,.2);
+  background: rgba(155,92,246,.12);
+  border: 1px solid rgba(155,92,246,.35);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: .12em;
@@ -1785,6 +1804,12 @@ input::placeholder { color: var(--t3); }
   color: var(--p-l);
   margin-bottom: 24px;
   animation: fade-up .6s var(--spring) .1s both;
+  /* Glow effects */
+  text-shadow: 0 0 18px rgba(180,140,250,.8), 0 0 40px rgba(155,92,246,.4);
+  box-shadow:
+    0 0 24px rgba(155,92,246,.22),
+    0 0 60px rgba(155,92,246,.1),
+    inset 0 0 16px rgba(155,92,246,.08);
 }
 
 .hero-eyebrow-dot {
@@ -2154,12 +2179,14 @@ input::placeholder { color: var(--t3); }
 /* ── Reveal: also basic .reveal ────────────────────────────────────────── */
 .js-ready .reveal {
   opacity: 0;
-  transform: translateY(28px);
-  transition: opacity .7s var(--smooth), transform .7s var(--smooth);
+  transform: translateY(36px);
+  filter: blur(5px);
+  transition: opacity .85s var(--smooth), transform .85s var(--smooth), filter .85s var(--smooth);
 }
 .js-ready .reveal.visible {
   opacity: 1;
   transform: none;
+  filter: none;
 }
 
 /* ── Enhanced card glow on hover ───────────────────────────────────────── */
