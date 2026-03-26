@@ -26,6 +26,17 @@ from email.mime.multipart import MIMEMultipart
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
+
+@app.after_request
+def no_cache_html(response):
+    """Prevent browsers/CDN from caching HTML pages so CSS/JS version bumps always take effect."""
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
+
 # ── Flask-Login ────────────────────────────────────────────────────────────────
 
 login_manager = LoginManager(app)

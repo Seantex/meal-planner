@@ -46,7 +46,13 @@ document.addEventListener('click', function(e) {
 }, true);
 
 // Hide loader on normal page load, back/forward cache, and as safety timeout
-document.addEventListener('DOMContentLoaded', hidePageLoader);
+document.addEventListener('DOMContentLoaded', function() {
+  hidePageLoader();
+  // Re-evaluate plan footer state in case all meals are already selected
+  if (document.querySelector('.plan-footer') && typeof PLAN_ID !== 'undefined') {
+    updateProgress();
+  }
+});
 window.addEventListener('pageshow', hidePageLoader);
 window.addEventListener('load', hidePageLoader);
 // Safety net: force-hide after 60s in case something went wrong
