@@ -418,6 +418,12 @@ def planning(plan_id):
     completed = sum(1 for s in slots_data if s["selected_recipe_id"])
     total = len(slots_data)
 
+    # Auto-fix status for plans whose shopping list was created before status tracking was added
+    plan_done = plan["status"] == "done"
+    if not plan_done and db.get_shopping_list(plan_id):
+        db.finish_plan(plan_id)
+        plan_done = True
+
     return render_template(
         "planning.html",
         plan=plan,
@@ -427,6 +433,7 @@ def planning(plan_id):
         progress_pct=int(completed / total * 100),
         default_persons=default_persons,
         slot_portions_map=slot_portions_map,
+        plan_done=plan_done,
     )
 
 
@@ -1361,6 +1368,12 @@ def plan_overview(plan_id):
 
     nutrition_data = planner.get_weekly_nutrition(plan_id, user_id=_uid())
     completed_count = sum(1 for s in plan_slots if selections.get(s["slot_id"]))
+
+    # Auto-fix status for plans whose shopping list was created before status tracking was added
+    if plan["status"] != "done" and db.get_shopping_list(plan_id):
+        db.finish_plan(plan_id)
+        plan = dict(plan)
+        plan["status"] = "done"
 
     return render_template(
         "overview.html", plan=plan, selected_recipes=selected_recipes,

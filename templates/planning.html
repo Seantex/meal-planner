@@ -204,14 +204,18 @@
   {% endfor %}
 </div>
 
-<!-- Abschließen Button (unten) -->
-<div class="plan-footer">
+<!-- Abschließen Button (unten, sticky wenn fertig) -->
+<div class="plan-footer {% if completed == total or plan_done %}plan-footer--ready{% endif %}">
   {% if completed > 0 %}
   <a href="{{ url_for('plan_overview', plan_id=plan.id) }}" class="btn btn--outline">
     📋 Wochenübersicht ({{ completed }}/{{ total }})
   </a>
   {% endif %}
-  {% if completed == total %}
+  {% if plan_done %}
+  <a href="{{ url_for('shopping', plan_id=plan.id) }}" class="btn btn--big btn--primary">
+    🛒 Zur Einkaufsliste →
+  </a>
+  {% elif completed == total %}
   <div class="finish-alert-inline">
     <strong>🎉 Alle Gerichte ausgewählt!</strong>
     Schließe den Plan ab um deine Einkaufsliste zu generieren.
