@@ -2,8 +2,8 @@ name: Keep Render Server Alive
 
 on:
   schedule:
-    # Alle 14 Minuten pingen (Render schläft nach 15min ein)
-    - cron: '*/14 * * * *'
+    # Alle 10 Minuten pingen (Render schläft nach 15min ein; GitHub Actions kann 1-3min verzögert sein)
+    - cron: '*/10 * * * *'
   workflow_dispatch:  # Manuell auslösbar
 
 jobs:

@@ -611,11 +611,10 @@ def delete_user(user_id: int):
 
 
 def reset_user_ai_usage(user_id: int, usage_type: str):
-    """Setzt das KI-Limit eines Nutzers für diese Woche auf 0 zurück."""
+    """Löscht alle KI-Nutzungseinträge eines Nutzers für diesen Typ (gibt vollen Kontingent zurück)."""
     conn = get_db()
-    week = _week_start_str()
-    _exec(conn, f"DELETE FROM ai_usage WHERE user_id={PH} AND usage_type={PH} AND week_start={PH}",
-          (user_id, usage_type, week))
+    _exec(conn, f"DELETE FROM ai_usage WHERE user_id={PH} AND usage_type={PH}",
+          (user_id, usage_type))
     conn.commit()
     conn.close()
 
