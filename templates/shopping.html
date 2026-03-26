@@ -24,7 +24,7 @@
 <!-- Aktionen -->
 <div class="shopping-actions">
   <a href="{{ url_for('plan_overview', plan_id=plan_id) }}" class="btn btn--outline btn--sm">📋 Wochenübersicht</a>
-  <button class="btn btn--outline btn--sm" onclick="printList()">🖨️ Drucken</button>
+
   <a href="{{ url_for('shopping_pdf', plan_id=plan_id) }}" class="btn btn--outline btn--sm">📄 PDF Export</a>
   <button class="btn btn--outline btn--sm" onclick="checkAllDeals()">🏷️ Nur Angebote markieren</button>
   <button class="btn btn--outline btn--sm" onclick="openCostBreakdown()">💰 Kosten pro Gericht</button>

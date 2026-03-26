@@ -138,7 +138,7 @@
   </a>
   {% if plan.status == 'done' %}
   <a href="{{ url_for('shopping', plan_id=plan.id) }}" class="btn btn--primary">
-    🛒 Zur Einkaufsliste →
+    ✕ Schließen
   </a>
   {% elif completed_count == total_slots %}
   <form action="{{ url_for('finish_plan', plan_id=plan.id) }}" method="POST" style="display:inline">

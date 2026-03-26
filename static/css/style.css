@@ -17,6 +17,7 @@
   --c-primary:   #7c3aed;
   --c-primary-h: #4f46e5;
   --c-primary-g: linear-gradient(135deg, #7c3aed 0%, #4f46e5 60%, #06b6d4 100%);
+  --grad-primary: linear-gradient(135deg, #7c3aed 0%, #4f46e5 60%, #06b6d4 100%);
 
   --c-green:     #059669;
   --c-orange:    #d97706;
@@ -454,12 +455,15 @@ a:hover { text-decoration: underline; }
   border-top: 1px solid var(--c-border);
 }
 .plan-footer--ready {
-  position: sticky; bottom: 0; z-index: 50;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
   background: #fff;
   border-top: 2px solid var(--c-primary);
   box-shadow: 0 -4px 20px rgba(124,58,237,.12);
-  margin-top: 0; padding: 16px 24px;
+  margin-top: 0; padding: 14px 24px;
+  flex-direction: row; justify-content: center; gap: 12px;
 }
+/* Extra space at bottom so fixed bar doesn't cover the last card */
+body:has(.plan-footer--ready) { padding-bottom: 80px; }
 .plan-footer-hint { color: var(--c-text-muted); font-size: .9rem; }
 .finish-alert-inline { color: var(--c-success, #16a34a); font-size: .95rem; text-align: center; }
 
