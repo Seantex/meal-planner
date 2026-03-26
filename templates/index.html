@@ -5,22 +5,55 @@
 
 {% block content %}
 
-<!-- ── Hero Header ── -->
-<div class="page-header reveal" style="margin-bottom:32px;">
-  <div class="page-header-inner">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      <span style="font-size:1.6rem;filter:drop-shadow(0 2px 12px rgba(109,40,217,.4));">🍽️</span>
-      <span style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--c-primary);opacity:.8;">Dein persönlicher Wochenplaner</span>
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+
+  <div class="hero-eyebrow">
+    <span class="hero-eyebrow-dot"></span>
+    Dein intelligenter Wochenplaner
+  </div>
+
+  <h1 class="hero-title anim-grad-text" data-word-reveal>
+    Smarter kochen.<br>Besser leben.
+  </h1>
+
+  <p class="hero-subtitle">
+    KI-generierte Wochenpläne, aktuelle Supermarkt-Angebote und deine
+    persönliche Einkaufsliste — alles in einer App.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#new-plan-card" class="btn btn--primary btn--big">
+      ✨ Plan erstellen
+    </a>
+    <a href="{{ url_for('recipes') }}" class="btn btn--outline btn--big">
+      📖 Rezepte ansehen
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="hero-stat-num stat-num">{{ deals_count }}</span>
+      <span class="hero-stat-label">Aktuelle Angebote</span>
     </div>
-    <h1>Wochenplaner</h1>
-    <p class="subtitle">Intelligente Mahlzeitenplanung · Aktuelle Supermarkt-Angebote · Einkaufsliste auf Knopfdruck</p>
+    <div class="hero-stat">
+      <span class="hero-stat-num">{{ recent_plans|length }}</span>
+      <span class="hero-stat-label">Meine Pläne</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-num">
+        <span class="live-dot" style="margin-right:6px;"></span>Live
+      </span>
+      <span class="hero-stat-label">KI-Unterstützung</span>
+    </div>
   </div>
 </div>
 
 <div class="dashboard-grid">
 
   <!-- ── Angebote Card ── -->
-  <section class="card card--deals reveal reveal-delay-1">
+  <section class="card card--deals reveal-left reveal-delay-1">
     <div class="card-header">
       <h2>🏷️ Aktuelle Angebote</h2>
       {% if deals_fresh %}
@@ -87,7 +120,7 @@
   </section>
 
   <!-- ── Neuer Plan Card ── -->
-  <section class="card card--new-plan reveal reveal-delay-2">
+  <section class="card card--new-plan reveal reveal-delay-2 card--highlight" id="new-plan-card">
     <div class="card-header">
       <h2>✨ Wochenplan erstellen</h2>
     </div>
@@ -129,7 +162,7 @@
 
   <!-- ── Meine Pläne ── -->
   {% if recent_plans %}
-  <section class="card card--plans-list reveal reveal-delay-3">
+  <section class="card card--plans-list reveal-right reveal-delay-3">
     <div class="card-header">
       <h2>📋 Meine Pläne</h2>
       <span class="badge">{{ recent_plans|length }}</span>

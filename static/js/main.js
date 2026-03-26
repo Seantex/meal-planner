@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   Meal Planner – JavaScript v21 (Nova)
+   Meal Planner – JavaScript v22 (Nova+)
    ═══════════════════════════════════════════════════════════════ */
 
 // ── FIRST: immediately ensure page loader is hidden ─────────────────────────
@@ -22,27 +22,120 @@
 // ── Scroll Reveal ───────────────────────────────────────────────────────────
 document.documentElement.classList.add('js-ready');
 
-// ── Cursor Spotlight ────────────────────────────────────────────────────────
+// ── Cursor Spotlight (smooth lag follow) ────────────────────────────────────
 (function initCursorSpotlight() {
   const el = document.getElementById('cursor-spotlight');
   if (!el) return;
-  let raf;
-  let tx = window.innerWidth / 2, ty = window.innerHeight / 2;
-  let cx = tx, cy = ty;
-
+  let raf, tx = window.innerWidth/2, ty = window.innerHeight/2, cx = tx, cy = ty;
   document.addEventListener('mousemove', e => {
     tx = e.clientX; ty = e.clientY;
     if (!raf) raf = requestAnimationFrame(loop);
   });
-
   function loop() {
-    cx += (tx - cx) * 0.12;
-    cy += (ty - cy) * 0.12;
+    cx += (tx - cx) * 0.1;
+    cy += (ty - cy) * 0.1;
     el.style.setProperty('--cx', cx + 'px');
     el.style.setProperty('--cy', cy + 'px');
-    const dist = Math.hypot(tx - cx, ty - cy);
-    raf = dist > 0.5 ? requestAnimationFrame(loop) : null;
+    raf = Math.hypot(tx-cx, ty-cy) > 0.5 ? requestAnimationFrame(loop) : null;
   }
+})();
+
+// ── Scroll Progress Bar ──────────────────────────────────────────────────────
+(function initScrollProgress() {
+  const bar = document.createElement('div');
+  bar.id = 'scroll-progress';
+  document.body.appendChild(bar);
+  function update() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+})();
+
+// ── 3D Card Tilt ────────────────────────────────────────────────────────────
+(function initCardTilt() {
+  function addTilt(card) {
+    card.classList.add('tilt-card');
+    card.addEventListener('mouseenter', () => {
+      card.style.transition = 'box-shadow .3s';
+    });
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      const cx = r.width / 2,      cy = r.height / 2;
+      const tiltX =  ((y - cy) / cy) * 7;
+      const tiltY = -((x - cx) / cx) * 7;
+      card.style.transform = `perspective(900px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateZ(6px)`;
+      card.style.setProperty('--mx', (x / r.width * 100) + '%');
+      card.style.setProperty('--my', (y / r.height * 100) + '%');
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transition = 'transform .6s cubic-bezier(.34,1.56,.64,1), box-shadow .3s';
+      card.style.transform = '';
+    });
+  }
+  function observe() {
+    document.querySelectorAll('.card, .recipe-card, .sidebar-card').forEach(addTilt);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observe);
+  else observe();
+})();
+
+// ── Magnetic Buttons ────────────────────────────────────────────────────────
+(function initMagneticBtns() {
+  function addMagnet(btn) {
+    btn.addEventListener('mousemove', e => {
+      const r = btn.getBoundingClientRect();
+      const x = e.clientX - r.left - r.width  / 2;
+      const y = e.clientY - r.top  - r.height / 2;
+      btn.style.transform = `translate(${x * 0.22}px, ${y * 0.28}px)`;
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transition = 'transform .5s cubic-bezier(.34,1.56,.64,1)';
+      btn.style.transform = '';
+      setTimeout(() => { btn.style.transition = ''; }, 500);
+    });
+  }
+  function observe() {
+    document.querySelectorAll('.btn--primary, .btn--big').forEach(addMagnet);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observe);
+  else observe();
+})();
+
+// ── Word-by-word Text Reveal ────────────────────────────────────────────────
+(function initWordReveal() {
+  function splitWords(el) {
+    const words = el.textContent.trim().split(/\s+/);
+    el.innerHTML = words.map((w, i) =>
+      `<span class="word" style="--i:${i}">${w}</span>`
+    ).join(' ');
+    el.classList.add('word-reveal');
+  }
+  function observe() {
+    document.querySelectorAll('.hero-title, [data-word-reveal]').forEach(splitWords);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observe);
+  else observe();
+})();
+
+// ── Enhanced Scroll Reveal (supports left/right/scale variants) ──────────────
+(function initScrollReveal() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
+  function observe() {
+    document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale')
+      .forEach(el => obs.observe(el));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observe);
+  else observe();
 })();
 
 // ── Navbar scroll state ─────────────────────────────────────────────────────
@@ -132,25 +225,9 @@ document.addEventListener('change', function(e) {
   else observe();
 })();
 
-(function initScrollReveal() {
-  const obs = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible');
-        obs.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
-
-  function observe() {
-    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', observe);
-  } else {
-    observe();
-  }
+// (old scroll reveal removed — replaced by enhanced version above)
+(function _unused() {
+  void 0;
 })();
 
 'use strict';
