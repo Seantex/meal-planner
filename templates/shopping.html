@@ -60,12 +60,17 @@
           <div class="item-content">
             <div class="item-main">
               <span class="item-name">{{ item.ingredient_name }}</span>
-              {% if item.amount %}
-                <span class="item-amount">
-                  {{ item.amount|int if item.amount == item.amount|int else item.amount }}
-                  {{ item.unit or '' }}
+              <span class="item-amount-wrap" title="Menge bearbeiten"
+                    onclick="editAmount({{ item.id }}, this)">
+                <span class="item-amount" id="amount-display-{{ item.id }}">
+                  {%- if item.amount -%}
+                    {{ item.amount|int if item.amount == item.amount|int else item.amount }}
+                    {{ item.unit or '' }}
+                  {%- else -%}
+                    <span class="item-amount-add">＋ Menge</span>
+                  {%- endif -%}
                 </span>
-              {% endif %}
+              </span>
               {% if item.is_deal %}
                 <span class="item-deal-badge">
                   🏷️ {{ item.supermarket }}
@@ -226,6 +231,87 @@ document.addEventListener('click', e => {
   const modal = document.getElementById('cost-breakdown-modal');
   if (modal && !modal.classList.contains('hidden') && e.target === modal) closeCostBreakdown();
 });
+
+// ── Mengenbearbeitung ──────────────────────────────────────────────────────
+let _activeAmountEditor = null;
+
+function editAmount(itemId, wrapEl) {
+  // Schließe alten Editor wenn offen
+  if (_activeAmountEditor && _activeAmountEditor !== wrapEl) {
+    _closeAmountEditor(_activeAmountEditor, false);
+  }
+  if (wrapEl.querySelector('.amount-input')) return; // Bereits offen
+
+  const displayEl = document.getElementById('amount-display-' + itemId);
+  const currentText = displayEl.textContent.trim();
+  // Nur die Zahl extrahieren (ohne Einheit)
+  const numMatch = currentText.match(/^[\d.,]+/);
+  const currentNum = numMatch ? numMatch[0] : '';
+  const unit = currentText.replace(/^[\d.,]+\s*/, '').replace('＋ Menge', '').trim();
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.inputMode = 'decimal';
+  input.className = 'amount-input';
+  input.value = currentNum;
+  input.placeholder = '0';
+  input.dataset.unit = unit;
+  input.dataset.itemId = itemId;
+
+  wrapEl.innerHTML = '';
+  wrapEl.appendChild(input);
+  input.focus();
+  input.select();
+  _activeAmountEditor = wrapEl;
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); _closeAmountEditor(wrapEl, true); }
+    if (e.key === 'Escape') { _closeAmountEditor(wrapEl, false); }
+  });
+  input.addEventListener('blur', () => {
+    setTimeout(() => _closeAmountEditor(wrapEl, true), 100);
+  });
+}
+
+async function _closeAmountEditor(wrapEl, save) {
+  const input = wrapEl.querySelector('.amount-input');
+  if (!input) return;
+  const itemId = input.dataset.itemId;
+  const unit = input.dataset.unit;
+  const val = input.value.trim();
+
+  if (save) {
+    const displayEl = document.getElementById('amount-display-' + itemId);
+    // Optimistic update
+    if (val === '' || val === '0') {
+      displayEl.innerHTML = '<span class="item-amount-add">＋ Menge</span>';
+    } else {
+      displayEl.textContent = val + (unit ? ' ' + unit : '');
+    }
+    wrapEl.innerHTML = '';
+    wrapEl.appendChild(displayEl);
+    _activeAmountEditor = null;
+
+    try {
+      const res = await fetch('/shopping/amount/' + itemId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: val === '' ? '' : val })
+      });
+      const data = await res.json();
+      if (data.success && data.display !== undefined) {
+        displayEl.textContent = data.display + (unit ? ' ' + unit : '');
+        if (!data.display) displayEl.innerHTML = '<span class="item-amount-add">＋ Menge</span>';
+      }
+    } catch(e) { /* still shows optimistic value */ }
+  } else {
+    // Abbruch: alten Wert wiederherstellen
+    const displayEl = document.getElementById('amount-display-' + itemId);
+    wrapEl.innerHTML = '';
+    wrapEl.appendChild(displayEl);
+    _activeAmountEditor = null;
+  }
+}
 
 // Nährwerte laden
 fetch('/api/nutrition/' + PLAN_ID)

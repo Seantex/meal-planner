@@ -930,6 +930,28 @@ def update_note(item_id):
     return jsonify({"success": True})
 
 
+@app.route("/shopping/amount/<int:item_id>", methods=["POST"])
+@login_required
+def update_amount(item_id):
+    try:
+        raw = request.json.get("amount", "")
+        amount = float(str(raw).replace(",", ".").strip()) if raw != "" else None
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "error": "Ungültige Menge"}), 400
+    item = db.get_shopping_item(item_id)
+    if not item:
+        return jsonify({"success": False, "error": "Item nicht gefunden"}), 404
+    db.update_shopping_amount(item_id, amount)
+    # Format nicely for display
+    if amount is None:
+        display = ""
+    elif amount == int(amount):
+        display = str(int(amount))
+    else:
+        display = str(amount)
+    return jsonify({"success": True, "display": display})
+
+
 @app.route("/shopping/delete/<int:item_id>", methods=["POST"])
 @login_required
 def delete_item(item_id):

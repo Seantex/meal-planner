@@ -1090,6 +1090,13 @@ def update_shopping_note(item_id: int, note: str):
     conn.close()
 
 
+def update_shopping_amount(item_id: int, amount):
+    conn = get_db()
+    _exec(conn, f"UPDATE shopping_items SET amount = {PH} WHERE id = {PH}", (amount, item_id))
+    conn.commit()
+    conn.close()
+
+
 def get_shopping_item(item_id: int):
     conn = get_db()
     row = _fetchone(conn, f"SELECT * FROM shopping_items WHERE id = {PH}", (item_id,))

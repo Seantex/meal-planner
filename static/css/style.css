@@ -539,6 +539,21 @@ body:has(.plan-footer--ready) { padding-bottom: 80px; }
 .item-main { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .item-name  { font-weight: 600; font-size: .92rem; }
 .item-amount { font-size: .82rem; color: var(--c-text-muted); }
+.item-amount-wrap {
+  display: inline-flex; align-items: center;
+  cursor: pointer; border-radius: 4px;
+  padding: 1px 5px; margin: -1px -5px;
+  transition: background var(--transition);
+}
+.item-amount-wrap:hover { background: rgba(124,58,237,.08); }
+.item-amount-add { font-size: .75rem; color: var(--c-primary); opacity: .6; }
+.amount-input {
+  width: 60px; font-size: .82rem;
+  border: 1.5px solid var(--c-primary); border-radius: 4px;
+  padding: 2px 5px; outline: none;
+  background: #fff; color: var(--c-text);
+  box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+}
 .item-deal-badge {
   font-size: .73rem; color: #92400e;
   background: #fef3c7; border: 1px solid var(--c-deal);
