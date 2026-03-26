@@ -1450,12 +1450,22 @@ def admin_update_user(user_id):
         return redirect(url_for("admin_panel"))
 
     if action == "reset_recipe":
-        db.reset_user_ai_usage(user_id, "recipe")
-        return jsonify({"success": True, "msg": "KI-Rezept-Limit zurückgesetzt"})
+        try:
+            db.reset_user_ai_usage(user_id, "recipe")
+            app.logger.info(f"Reset recipe usage for user {user_id}")
+            return jsonify({"success": True, "msg": "KI-Rezept-Limit zurückgesetzt"})
+        except Exception as e:
+            app.logger.error(f"Reset recipe failed for user {user_id}: {e}")
+            return jsonify({"error": str(e)}), 500
 
     if action == "reset_plan":
-        db.reset_user_ai_usage(user_id, "plan")
-        return jsonify({"success": True, "msg": "Plan-Limit zurückgesetzt"})
+        try:
+            db.reset_user_ai_usage(user_id, "plan")
+            app.logger.info(f"Reset plan usage for user {user_id}")
+            return jsonify({"success": True, "msg": "Plan-Limit zurückgesetzt"})
+        except Exception as e:
+            app.logger.error(f"Reset plan failed for user {user_id}: {e}")
+            return jsonify({"error": str(e)}), 500
 
     return jsonify({"error": "Unbekannte Aktion"}), 400
 
