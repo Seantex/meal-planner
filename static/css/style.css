@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v67
+   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v68
    Apple-grade dark UI · Cursor spotlight · Spring physics · Live aurora
    Canvas particles · Custom cursor · Text scramble · Maximum effects
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1930,13 +1930,10 @@ input::placeholder { color: var(--t3); }
   font-size: .68rem;
   letter-spacing: .14em;
   text-transform: uppercase;
-  /* Fade in after hero content loaded */
-  opacity: 0;
-  animation: fade-up .7s var(--smooth) 1.2s forwards;
   cursor: pointer;
   user-select: none;
-  z-index: 2;
   flex-shrink: 0;
+  transition: opacity .4s, color .3s;
 }
 .scroll-arrow:hover { color: var(--p-l); }
 .scroll-arrow:hover .scroll-arrow-icon { border-color: rgba(155,92,246,.6); }
@@ -2300,20 +2297,19 @@ input::placeholder { color: var(--t3); }
   to   { opacity:1; transform:none; filter:none; }
 }
 
-/* Cards start invisible – only animate once scrolled into view */
-.card.reveal-left,
-.card.reveal,
-.card.reveal-right { opacity: 0; }
+/* ── Dashboard cards: hidden until scrolled to, no class conflicts ───────── */
+/* Initial hidden state */
+.card-fly-left,
+.card-fly-up,
+.card-fly-right {
+  opacity: 0;
+  will-change: opacity, transform, filter;
+}
 
-/* Fire keyframe when IntersectionObserver adds .visible */
-.card.reveal-left.visible  { animation: card-fly-left  .9s var(--smooth) 0s   both; }
-.card.reveal.visible       { animation: card-fly-up    .9s var(--smooth) .18s both; }
-.card.reveal-right.visible { animation: card-fly-right .9s var(--smooth) .36s both; }
-
-/* Prevent transition-based .js-ready rules from conflicting */
-.js-ready .card.reveal-left,
-.js-ready .card.reveal,
-.js-ready .card.reveal-right { transition: none; }
+/* Animate in once IntersectionObserver adds .card-in-view */
+.card-fly-left.card-in-view  { animation: card-fly-left  .9s var(--smooth) 0s   both; }
+.card-fly-up.card-in-view    { animation: card-fly-up    .9s var(--smooth) .18s both; }
+.card-fly-right.card-in-view { animation: card-fly-right .9s var(--smooth) .36s both; }
 
 /* ── Enhanced hero stats ─────────────────────────────────────────────────── */
 .hero-stat-num {

@@ -455,17 +455,30 @@ class TextScramble {
 (function initScrollArrow() {
   const arrow = document.querySelector('.scroll-arrow');
   if (!arrow) return;
-  const hide = () => {
-    if (window.scrollY > 60) {
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 40) {
       arrow.style.opacity = '0';
       arrow.style.pointerEvents = 'none';
     } else {
-      // Only restore if animation has already played (after 2s)
       arrow.style.opacity = '';
       arrow.style.pointerEvents = '';
     }
-  };
-  window.addEventListener('scroll', hide, { passive: true });
+  }, { passive: true });
+})();
+
+// ── Dashboard card fly-in (dedicated, conflict-free observer) ─────────────────
+(function initCardReveal() {
+  const cards = document.querySelectorAll('.card-fly-left, .card-fly-up, .card-fly-right');
+  if (!cards.length) return;
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('card-in-view');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -80px 0px' });
+  cards.forEach(c => obs.observe(c));
 })();
 
 // ── Click Explosion (20 sparks) ───────────────────────────────────────────────

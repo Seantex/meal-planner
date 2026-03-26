@@ -63,7 +63,7 @@
 <div class="dashboard-grid">
 
   <!-- ── Angebote Card ── -->
-  <section class="card card--deals reveal-left reveal-delay-1">
+  <section class="card card--deals card-fly-left">
     <div class="card-header">
       <h2>🏷️ Aktuelle Angebote</h2>
       {% if deals_fresh %}
@@ -130,7 +130,7 @@
   </section>
 
   <!-- ── Neuer Plan Card ── -->
-  <section class="card card--new-plan reveal reveal-delay-2 card--highlight" id="new-plan-card">
+  <section class="card card--new-plan card-fly-up card--highlight" id="new-plan-card">
     <div class="card-header">
       <h2>✨ Wochenplan erstellen</h2>
     </div>
@@ -172,7 +172,7 @@
 
   <!-- ── Meine Pläne ── -->
   {% if recent_plans %}
-  <section class="card card--plans-list reveal-right reveal-delay-3">
+  <section class="card card--plans-list card-fly-right">
     <div class="card-header">
       <h2>📋 Meine Pläne</h2>
       <span class="badge">{{ recent_plans|length }}</span>
