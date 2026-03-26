@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v63
+   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v64
    Apple-grade dark UI · Cursor spotlight · Spring physics · Live aurora
    Canvas particles · Custom cursor · Text scramble · Maximum effects
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -180,20 +180,20 @@ body::after {
   z-index: 2;
   pointer-events: none;
   background:
-    radial-gradient(100px circle at var(--cx,50%) var(--cy,50%),
-      rgba(155,92,246,.9)  0%,
-      rgba(155,92,246,.55) 30%,
-      rgba(155,92,246,.18) 60%,
-      transparent 80%
+    radial-gradient(46px circle at var(--cx,50%) var(--cy,50%),
+      rgba(155,92,246,.95) 0%,
+      rgba(155,92,246,.6)  35%,
+      rgba(155,92,246,.2)  65%,
+      transparent 85%
     ),
-    radial-gradient(280px circle at var(--cx,50%) var(--cy,50%),
-      rgba(155,92,246,.22) 0%,
-      rgba(244,114,182,.14) 45%,
-      transparent 72%
+    radial-gradient(130px circle at var(--cx,50%) var(--cy,50%),
+      rgba(155,92,246,.25) 0%,
+      rgba(244,114,182,.16) 50%,
+      transparent 75%
     ),
-    radial-gradient(520px circle at var(--cx,50%) var(--cy,50%),
+    radial-gradient(260px circle at var(--cx,50%) var(--cy,50%),
       rgba(244,114,182,.07) 0%,
-      transparent 65%
+      transparent 68%
     );
   mix-blend-mode: screen;
 }
@@ -2280,6 +2280,19 @@ select:focus {
 input[type="checkbox"],
 input[type="radio"] {
   accent-color: var(--p);
+}
+
+/* ── Mobile: spotlight pulses centered (no cursor on touch) ─────────────── */
+@media (hover: none) {
+  #cursor-spotlight {
+    --cx: 50%;
+    --cy: 46%;
+    animation: mobile-pulse 3s ease-in-out infinite;
+  }
+}
+@keyframes mobile-pulse {
+  0%, 100% { opacity: .65; transform: scale(1);    }
+  50%       { opacity: 1;   transform: scale(1.18); }
 }
 
 /* ── Selection color ────────────────────────────────────────────────────── */

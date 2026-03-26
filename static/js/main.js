@@ -404,7 +404,9 @@ class TextScramble {
 // ── Word-by-word Text Reveal ──────────────────────────────────────────────────
 (function initWordReveal() {
   function split(el) {
-    const words = el.textContent.trim().split(/\s+/);
+    // Replace <br> with a space so the line-break doesn't merge adjacent words
+    const text = el.innerHTML.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '');
+    const words = text.trim().split(/\s+/);
     el.innerHTML = words.map((w, i) => `<span class="word" style="--i:${i}">${w}</span>`).join(' ');
     el.classList.add('word-reveal');
   }
@@ -418,10 +420,23 @@ class TextScramble {
 // ── Scroll Reveal (all variants) ─────────────────────────────────────────────
 (function initScrollReveal() {
   const obs = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        // Double-RAF: guarantees the browser has painted the invisible state
+        // before we add .visible, so the CSS transition actually runs
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          e.target.classList.add('visible');
+        }));
+        obs.unobserve(e.target);
+      }
+    });
   }, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
   function go() {
-    document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach(el => obs.observe(el));
+    // Small timeout so js-ready styles are painted before we start observing
+    setTimeout(() => {
+      document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale')
+        .forEach(el => obs.observe(el));
+    }, 60);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
   else go();
