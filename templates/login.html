@@ -4,21 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anmelden – Meal Planner</title>
-  <style>html,body{background:#f0f2ff;}</style>
+  <style>html,body{background:#000005;color:#f0f0fa;}</style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=30">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=50">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  <meta name="theme-color" content="#6d28d9">
+  <meta name="theme-color" content="#000005">
 </head>
 <body>
-  <!-- Background Orbs -->
-  <div class="bg-orbs" aria-hidden="true">
-    <div class="bg-orb bg-orb--1"></div>
-    <div class="bg-orb bg-orb--2"></div>
-    <div class="bg-orb bg-orb--3"></div>
-  </div>
+  <div class="bg-aurora" aria-hidden="true"><div class="bg-aurora-3"></div></div>
+  <div id="cursor-spotlight" aria-hidden="true"></div>
+  <script src="{{ url_for('static', filename='js/main.js') }}?v=20" defer></script>
 
   <div class="auth-wrap">
     <!-- Brand -->

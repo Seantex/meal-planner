@@ -1,10 +1,119 @@
 /* ═══════════════════════════════════════════════════════════════
-   Meal Planner – JavaScript v11
+   Meal Planner – JavaScript v20 (Nova)
    ═══════════════════════════════════════════════════════════════ */
 
 // ── Scroll Reveal ───────────────────────────────────────────────────────────
-// Only hide .reveal elements after JS confirms it's running (avoids blank page if JS fails)
 document.documentElement.classList.add('js-ready');
+
+// ── Cursor Spotlight ────────────────────────────────────────────────────────
+(function initCursorSpotlight() {
+  const el = document.getElementById('cursor-spotlight');
+  if (!el) return;
+  let raf;
+  let tx = window.innerWidth / 2, ty = window.innerHeight / 2;
+  let cx = tx, cy = ty;
+
+  document.addEventListener('mousemove', e => {
+    tx = e.clientX; ty = e.clientY;
+    if (!raf) raf = requestAnimationFrame(loop);
+  });
+
+  function loop() {
+    cx += (tx - cx) * 0.12;
+    cy += (ty - cy) * 0.12;
+    el.style.setProperty('--cx', cx + 'px');
+    el.style.setProperty('--cy', cy + 'px');
+    const dist = Math.hypot(tx - cx, ty - cy);
+    raf = dist > 0.5 ? requestAnimationFrame(loop) : null;
+  }
+})();
+
+// ── Navbar scroll state ─────────────────────────────────────────────────────
+(function initNavbarScroll() {
+  const nav = document.querySelector('.navbar');
+  if (!nav) return;
+  const update = () => nav.classList.toggle('scrolled', window.scrollY > 20);
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+})();
+
+// ── Button Ripple Effect ────────────────────────────────────────────────────
+document.addEventListener('pointerdown', function(e) {
+  const btn = e.target.closest('.btn');
+  if (!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height) * 2;
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  ripple.style.cssText = `
+    width:${size}px; height:${size}px;
+    left:${e.clientX - rect.left - size/2}px;
+    top:${e.clientY - rect.top - size/2}px;
+  `;
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}, { passive: true });
+
+// ── Checkbox Particle Burst ─────────────────────────────────────────────────
+document.addEventListener('change', function(e) {
+  if (!e.target.classList.contains('item-checkbox') || !e.target.checked) return;
+  const wrap = e.target.parentElement;
+  if (!wrap) return;
+  const colors = ['#9b5cf6','#f472b6','#22d3ee','#34d399','#a78bfa'];
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('span');
+    p.className = 'check-burst';
+    const angle = (i / 8) * Math.PI * 2;
+    const dist = 18 + Math.random() * 14;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    p.style.cssText = `
+      left:50%; top:50%;
+      background:${colors[i % colors.length]};
+      --tx:translate(${dx}px,${dy}px);
+      width:${4 + Math.random()*3}px;
+      height:${4 + Math.random()*3}px;
+      margin:-3px;
+    `;
+    wrap.appendChild(p);
+    setTimeout(() => p.remove(), 550);
+  }
+}, { passive: true });
+
+// ── Number Countup ──────────────────────────────────────────────────────────
+(function initCountup() {
+  function animate(el) {
+    const target = parseFloat(el.textContent.replace(/[^0-9.]/g,'')) || 0;
+    if (target === 0 || target > 9999) return;
+    const duration = 900;
+    const start = performance.now();
+    const prefix = el.textContent.match(/^[^0-9]*/)?.[0] || '';
+    const suffix = el.textContent.match(/[^0-9.]*$/)?.[0] || '';
+    function step(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const val = Math.round(target * ease);
+      el.textContent = prefix + val + suffix;
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        animate(e.target);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  function observe() {
+    document.querySelectorAll('.stat-num, .deals-count, .admin-stat').forEach(el => obs.observe(el));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observe);
+  else observe();
+})();
 
 (function initScrollReveal() {
   const obs = new IntersectionObserver((entries) => {
