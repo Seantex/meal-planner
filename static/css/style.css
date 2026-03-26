@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v60
+   MEAL PLANNER — OBSIDIAN DESIGN SYSTEM v61
    Apple-grade dark UI · Cursor spotlight · Spring physics · Live aurora
    Canvas particles · Custom cursor · Text scramble · Maximum effects
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1778,7 +1778,7 @@ input::placeholder { color: var(--t3); }
   border-radius: var(--r5);
   background: rgba(155,92,246,.1);
   border: 1px solid rgba(155,92,246,.2);
-  font-size: .72rem;
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: .12em;
   text-transform: uppercase;
