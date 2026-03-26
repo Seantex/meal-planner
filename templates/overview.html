@@ -4,11 +4,11 @@
 {% block title %}Wochenübersicht{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header reveal">
   <div class="page-header-inner">
     <a href="{{ url_for('planning', plan_id=plan.id) }}" class="back-link">← Zurück zur Planung</a>
-    <h1>📋 Wochenübersicht</h1>
-    <p class="subtitle">{{ selected_count }} von {{ total_slots }} Gerichten ausgewählt · Woche ab {{ plan.week_start }}</p>
+    <h1>Wochenübersicht</h1>
+    <p class="subtitle">{{ selected_count }} von {{ total_slots }} Gerichten ausgewählt &middot; Woche ab {{ plan.week_start }}</p>
   </div>
 </div>
 

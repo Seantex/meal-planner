@@ -4,84 +4,80 @@
 {% block title %}Übersicht{% endblock %}
 
 {% block content %}
-<div class="page-header">
+
+<!-- ── Hero Header ── -->
+<div class="page-header reveal" style="margin-bottom:32px;">
   <div class="page-header-inner">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:1.6rem;filter:drop-shadow(0 2px 12px rgba(109,40,217,.4));">🍽️</span>
+      <span style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--c-primary);opacity:.8;">Dein persönlicher Wochenplaner</span>
+    </div>
     <h1>Wochenplaner</h1>
-    <p class="subtitle">Plane deine Woche mit aktuellen Supermarkt-Angeboten</p>
+    <p class="subtitle">Intelligente Mahlzeitenplanung · Aktuelle Supermarkt-Angebote · Einkaufsliste auf Knopfdruck</p>
   </div>
 </div>
 
 <div class="dashboard-grid">
 
   <!-- ── Angebote Card ── -->
-  <section class="card card--deals">
+  <section class="card card--deals reveal reveal-delay-1">
     <div class="card-header">
       <h2>🏷️ Aktuelle Angebote</h2>
       {% if deals_fresh %}
-        <span class="badge badge--green">Aktuell</span>
+        <span class="badge badge--green">✓ Aktuell</span>
       {% else %}
-        <span class="badge badge--orange">Veraltet</span>
+        <span class="badge badge--orange">⚠ Veraltet</span>
       {% endif %}
     </div>
     <div class="card-body">
       {% if store_counts %}
-        <p class="deals-count">{{ deals_count }} Angebote geladen</p>
+        <p class="deals-count">{{ deals_count }} Angebote</p>
         <div class="store-badges">
           {% for store, cnt in store_counts.items() %}
             <div class="store-badge">
-              {{ store }} <span class="store-badge-count">{{ cnt }}</span>
+              {{ store }}<span class="store-badge-count">{{ cnt }}</span>
             </div>
           {% endfor %}
         </div>
       {% else %}
-        <p class="empty-hint">Noch keine Angebote geladen.</p>
+        <p class="empty-hint" style="margin-bottom:16px;">Noch keine Angebote geladen.</p>
       {% endif %}
 
       <div class="deals-actions">
-        <!-- Alle 4 Supermärkte auf einmal -->
-        <form action="{{ url_for('refresh_deals') }}" method="POST"
-              onsubmit="setLoading(this, '⏳ Wird geladen…')">
-          <button type="submit" class="btn btn--primary">
+        <form action="{{ url_for('refresh_deals') }}" method="POST">
+          <button type="submit" class="btn btn--primary" style="width:100%;">
             🔄 Alle Angebote laden
           </button>
         </form>
 
-        <!-- Direktdownload pro Supermarkt -->
         <details class="pdf-upload-details">
-          <summary class="btn btn--outline">🏪 Einzeln laden / PDF hochladen</summary>
+          <summary class="btn btn--outline" style="width:100%;justify-content:center;">
+            🏪 Einzeln laden / PDF hochladen
+          </summary>
           <div class="supermarket-actions">
-
             {% for market, url in flyer_urls.items() %}
             <div class="market-row">
               <span class="market-name">{{ market }}</span>
-              <form action="{{ url_for('fetch_deals_from_web', supermarket=market) }}"
-                    method="POST" style="display:inline"
-                    onsubmit="setLoading(this, '⏳ Lädt…')">
-                <button type="submit" class="btn btn--outline btn--sm">
-                  🌐 Von Website laden
-                </button>
+              <form action="{{ url_for('fetch_deals_from_web', supermarket=market) }}" method="POST" style="display:inline">
+                <button type="submit" class="btn btn--outline btn--sm">🌐 Web</button>
               </form>
-              <a href="{{ url }}" target="_blank" class="btn btn--ghost btn--sm">
-                Prospekt ansehen ↗
-              </a>
+              <a href="{{ url }}" target="_blank" class="btn btn--ghost btn--sm">Prospekt ↗</a>
             </div>
             {% endfor %}
 
-            <!-- Manueller PDF-Upload -->
             <div class="market-row market-row--upload">
               <form action="{{ url_for('upload_pdf') }}" method="POST"
-                    enctype="multipart/form-data" class="pdf-form-inline"
-                    onsubmit="setLoading(this, '⏳ PDF wird verarbeitet…')">
-                <select name="supermarket" class="input-select" required>
+                    enctype="multipart/form-data" class="pdf-form-inline">
+                <select name="supermarket" class="input-select" required style="width:130px;">
                   <option value="">Supermarkt…</option>
                   <option>Hofer</option><option>Lidl</option>
                   <option>Billa</option><option>Spar</option>
                 </select>
                 <label class="file-label-inline">
                   <input type="file" name="pdf_file" accept=".pdf" required class="file-input">
-                  <span class="file-btn-sm">📄 PDF wählen</span>
+                  <span class="file-btn-sm">📄 PDF</span>
                 </label>
-                <button type="submit" class="btn btn--primary btn--sm">Hochladen</button>
+                <button type="submit" class="btn btn--primary btn--sm">Upload</button>
               </form>
             </div>
           </div>
@@ -91,90 +87,81 @@
   </section>
 
   <!-- ── Neuer Plan Card ── -->
-  <section class="card card--new-plan">
+  <section class="card card--new-plan reveal reveal-delay-2">
     <div class="card-header">
-      <h2>📅 Wochenplan erstellen</h2>
+      <h2>✨ Wochenplan erstellen</h2>
     </div>
     <div class="card-body">
       {% if not api_configured %}
         <div class="alert alert--warning">
-          <strong>API Key fehlt!</strong> Trage deinen Anthropic API Key als Umgebungsvariable ein.
+          <strong>API Key fehlt!</strong> Trage deinen Anthropic API Key ein.
         </div>
       {% endif %}
 
-      <form action="{{ url_for('new_plan') }}" method="POST" class="new-plan-form"
-            id="new-plan-form">
+      <form action="{{ url_for('new_plan') }}" method="POST" id="new-plan-form">
 
-        <!-- Startdatum -->
-        <div class="form-group" style="margin-bottom:10px;">
-          <label class="form-label" style="font-size:.85rem;">Startdatum</label>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Startdatum</label>
           <input type="date" name="week_start" id="plan-start-date" value="{{ week_start }}"
-                 class="form-control" style="font-size:.9rem;" onchange="buildDayGrid()">
+                 class="form-control" onchange="buildDayGrid()">
         </div>
 
-        <!-- Personen -->
-        <div class="form-group" style="margin-bottom:12px;">
-          <label class="form-label" style="font-size:.85rem;">Personen</label>
-          <div style="display:flex;align-items:center;gap:10px;">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Personen</label>
+          <div style="display:flex;align-items:center;gap:12px;">
             <input type="number" name="default_persons" min="1" max="10" value="2"
-                   class="form-control" style="width:72px;text-align:center;font-weight:700;">
-            <span style="color:var(--c-text-muted);font-size:.82rem;">Standard für alle Tage</span>
+                   class="form-control" style="width:80px;text-align:center;font-weight:800;">
+            <span style="color:var(--c-text-muted);font-size:.8rem;">Standard für alle Tage</span>
           </div>
         </div>
 
-        <!-- Tag-/Mahlzeit-Auswahl -->
-        <div style="margin-bottom:14px;">
-          <label class="form-label" style="font-size:.85rem;margin-bottom:6px;">Tage & Mahlzeiten auswählen</label>
+        <div style="margin-bottom:16px;">
+          <label class="form-label" style="margin-bottom:8px;">Tage &amp; Mahlzeiten</label>
           <div id="day-grid" class="day-grid"></div>
         </div>
 
-        <button type="submit" class="btn btn--big btn--primary" id="gen-btn">
+        <button type="submit" class="btn btn--big btn--primary" id="gen-btn" style="width:100%;">
           ✨ Wochenplan generieren
         </button>
       </form>
-      <div id="plan-loading" style="display:none; margin-top:14px; text-align:center;
-           color:var(--c-text-muted); font-size:.88rem; line-height:1.8;">
-        <span style="display:inline-block; width:18px; height:18px; border:3px solid var(--c-border);
-             border-top-color:var(--c-primary); border-radius:50%; animation:spin .8s linear infinite;
-             vertical-align:middle; margin-right:6px;"></span>
-        KI erstellt deinen Wochenplan… (15–30 Sek.)
-      </div>
     </div>
   </section>
 
   <!-- ── Meine Pläne ── -->
   {% if recent_plans %}
-  <section class="card card--plans-list">
+  <section class="card card--plans-list reveal reveal-delay-3">
     <div class="card-header">
       <h2>📋 Meine Pläne</h2>
+      <span class="badge">{{ recent_plans|length }}</span>
     </div>
     <div class="card-body" style="padding:0;">
       {% for p in recent_plans %}
       <div class="plan-list-item {% if loop.first %}plan-list-item--active{% endif %}">
-        <a href="{{ url_for('shopping', plan_id=p.id) if p.status == 'done' else url_for('planning', plan_id=p.id) }}" class="plan-list-link">
+        <a href="{{ url_for('shopping', plan_id=p.id) if p.status == 'done' else url_for('planning', plan_id=p.id) }}"
+           class="plan-list-link">
           <div class="plan-list-info">
             <span class="plan-list-name" id="plan-name-{{ p.id }}">{{ p.name if p.name else 'Wochenplan' }}</span>
             <span class="plan-list-date">ab {{ p.week_start }}</span>
             {% if p.status == 'done' %}
-              <span class="badge badge--green" style="font-size:.72rem;">Abgeschlossen</span>
+              <span class="badge badge--green" style="font-size:.68rem;">✓ Abgeschlossen</span>
             {% else %}
-              <span class="badge badge--blue" style="font-size:.72rem;">In Bearbeitung</span>
+              <span class="badge badge--blue" style="font-size:.68rem;">◐ In Bearbeitung</span>
             {% endif %}
           </div>
         </a>
         <div class="plan-list-actions">
           {% if not loop.first %}
-          <button class="btn-icon" title="Nach oben verschieben" onclick="reorderPlan({{ p.id }}, 'up')">↑</button>
+          <button class="btn-icon" title="Nach oben" onclick="reorderPlan({{ p.id }}, 'up')">↑</button>
           {% endif %}
           {% if not loop.last %}
-          <button class="btn-icon" title="Nach unten verschieben" onclick="reorderPlan({{ p.id }}, 'down')">↓</button>
+          <button class="btn-icon" title="Nach unten" onclick="reorderPlan({{ p.id }}, 'down')">↓</button>
           {% endif %}
           <button class="btn-icon" title="Umbenennen"
                   onclick="renamePlan({{ p.id }}, document.getElementById('plan-name-{{ p.id }}').textContent)">✏️</button>
           <form action="{{ url_for('delete_plan', plan_id=p.id) }}" method="POST" style="display:inline"
                 data-no-intercept="1"
-                onsubmit="return confirm('Plan wirklich löschen? Dies kann nicht rückgängig gemacht werden.')">
-            <button type="submit" class="btn-icon" title="Löschen">🗑️</button>
+                onsubmit="return confirm('Plan wirklich löschen?')">
+            <button type="submit" class="btn-icon btn-icon--danger" title="Löschen">🗑️</button>
           </form>
         </div>
       </div>
@@ -182,7 +169,6 @@
     </div>
   </section>
   {% endif %}
-
 
 </div>
 {% endblock %}

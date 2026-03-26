@@ -1,6 +1,28 @@
 /* ═══════════════════════════════════════════════════════════════
-   Meal Planner – JavaScript
+   Meal Planner – JavaScript v11
    ═══════════════════════════════════════════════════════════════ */
+
+// ── Scroll Reveal ───────────────────────────────────────────────────────────
+(function initScrollReveal() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+  function observe() {
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observe);
+  } else {
+    observe();
+  }
+})();
 
 'use strict';
 
