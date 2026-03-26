@@ -45,8 +45,12 @@ document.addEventListener('click', function(e) {
   }
 }, true);
 
-// Hide loader when page becomes visible again (back/forward cache)
+// Hide loader on normal page load, back/forward cache, and as safety timeout
+document.addEventListener('DOMContentLoaded', hidePageLoader);
 window.addEventListener('pageshow', hidePageLoader);
+window.addEventListener('load', hidePageLoader);
+// Safety net: force-hide after 60s in case something went wrong
+setTimeout(hidePageLoader, 60000);
 
 // ── Loading-State für Formulare (legacy, button-only) ─────────────────────────
 
