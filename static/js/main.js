@@ -1,6 +1,23 @@
 /* ═══════════════════════════════════════════════════════════════
-   Meal Planner – JavaScript v20 (Nova)
+   Meal Planner – JavaScript v21 (Nova)
    ═══════════════════════════════════════════════════════════════ */
+
+// ── FIRST: immediately ensure page loader is hidden ─────────────────────────
+// Belt-and-suspenders: force-hide the loader right as JS starts executing
+// so it can never get stuck even if CSS cache is stale.
+(function() {
+  const loader = document.getElementById('page-loader');
+  if (loader) {
+    loader.style.opacity = '0';
+    loader.style.pointerEvents = 'none';
+    loader.classList.remove('visible');
+    setTimeout(function() {
+      if (loader && !loader.classList.contains('visible')) {
+        loader.style.display = 'none';
+      }
+    }, 400);
+  }
+})();
 
 // ── Scroll Reveal ───────────────────────────────────────────────────────────
 document.documentElement.classList.add('js-ready');
