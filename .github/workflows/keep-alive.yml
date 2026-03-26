@@ -10,13 +10,20 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping health endpoint
+      - name: Ping health endpoint (with retry)
         run: |
           echo "Pinging meal-planner server..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://meal-planner-fjih.onrender.com/health")
-          echo "HTTP Status: $STATUS"
-          if [ "$STATUS" = "200" ]; then
-            echo "Server is awake and healthy!"
-          else
-            echo "Server returned $STATUS – may be waking up"
-          fi
+          # Render cold-start kann 60-90 Sekunden dauern → 100s Timeout + 3 Versuche
+          for i in 1 2 3; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 100 \
+              "https://meal-planner-fjih.onrender.com/health" || echo "000")
+            echo "Versuch $i: HTTP Status $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Server ist wach und gesund!"
+              exit 0
+            fi
+            echo "Warte 10 Sekunden vor nächstem Versuch..."
+            sleep 10
+          done
+          echo "Server antwortet nicht (möglicherweise Deployment läuft)"
+          exit 0
