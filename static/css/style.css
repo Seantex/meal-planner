@@ -457,10 +457,11 @@ a:hover { text-decoration: underline; }
 
 .plan-footer {
   margin-top: 36px; padding: 28px 24px;
-  display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
   border-top: 1px solid var(--c-border);
 }
 .plan-footer-hint { color: var(--c-text-muted); font-size: .9rem; }
+.finish-alert-inline { color: var(--c-success, #16a34a); font-size: .95rem; text-align: center; }
 
 /* ── Meta Tags ───────────────────────────────────────────────────────────────── */
 .meta-tag, .meta-item {

@@ -17,15 +17,6 @@
   </div>
 </div>
 
-{% if completed == total %}
-<div class="alert alert--success finish-alert">
-  <strong>🎉 Alle Gerichte ausgewählt!</strong>
-  Schließe den Plan ab um deine Einkaufsliste zu generieren.
-  <form action="{{ url_for('finish_plan', plan_id=plan.id) }}" method="POST" style="display:inline">
-    <button class="btn btn--primary btn--sm" type="submit">🛒 Einkaufsliste erstellen →</button>
-  </form>
-</div>
-{% endif %}
 
 <div class="planning-grid">
   {% for slot_data in slots_data %}
@@ -221,9 +212,13 @@
   </a>
   {% endif %}
   {% if completed == total %}
+  <div class="finish-alert-inline">
+    <strong>🎉 Alle Gerichte ausgewählt!</strong>
+    Schließe den Plan ab um deine Einkaufsliste zu generieren.
+  </div>
   <form action="{{ url_for('finish_plan', plan_id=plan.id) }}" method="POST" style="display:inline">
     <button class="btn btn--big btn--primary" type="submit">
-      🛒 Plan abschließen &amp; Einkaufsliste erstellen
+      🛒 Einkaufsliste erstellen →
     </button>
   </form>
   {% else %}

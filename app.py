@@ -410,7 +410,7 @@ def planning(plan_id):
         })
 
     completed = sum(1 for s in slots_data if s["selected_recipe_id"])
-    total = len(MEAL_SLOTS)
+    total = len(slots_data)
 
     return render_template(
         "planning.html",
@@ -743,8 +743,9 @@ def finish_plan(plan_id):
         return redirect(url_for("index"))
 
     selections = db.get_selections(plan_id)
-    if len(selections) < len(MEAL_SLOTS):
-        flash(f"Bitte noch {len(MEAL_SLOTS) - len(selections)} Gerichte auswählen oder überspringen.", "warning")
+    plan_slot_count = len(db.get_plan_slots(plan_id))
+    if len(selections) < plan_slot_count:
+        flash(f"Bitte noch {plan_slot_count - len(selections)} Gerichte auswählen oder überspringen.", "warning")
         return redirect(url_for("planning", plan_id=plan_id))
 
     for recipe_id in selections.values():
