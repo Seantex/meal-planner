@@ -21,34 +21,42 @@ if DATABASE_URL:
     _pool_lock = threading.Lock()
 
     def _get_pool():
+        """Lazily initialise the connection pool. Never raises — returns None on failure."""
         global _pool
         with _pool_lock:
             if _pool is None or _pool.closed:
-                _pool = ThreadedConnectionPool(
-                    minconn=1,
-                    maxconn=8,  # Render free PostgreSQL erlaubt max 97 Verbindungen
-                    dsn=DATABASE_URL,
-                    connect_timeout=10,
-                )
+                try:
+                    _pool = ThreadedConnectionPool(
+                        minconn=1,
+                        maxconn=8,
+                        dsn=DATABASE_URL,
+                        connect_timeout=10,
+                    )
+                except Exception as e:
+                    print(f"[DB] Pool init failed, will use direct connections: {e}")
+                    _pool = None
         return _pool
 
     class _PooledConn:
         """Wrapper: gibt Verbindung beim .close() zurück in den Pool."""
-        def __init__(self, conn):
+        def __init__(self, conn, pool):
             self._conn = conn
+            self._pool = pool
 
         def __getattr__(self, name):
             return getattr(self._conn, name)
 
         def close(self):
             try:
-                # Offene Transaktion bereinigen bevor zurück in den Pool
                 if not self._conn.closed:
                     try:
                         self._conn.rollback()
                     except Exception:
                         pass
-                _get_pool().putconn(self._conn)
+                if self._pool is not None:
+                    self._pool.putconn(self._conn)
+                else:
+                    self._conn.close()
             except Exception:
                 try:
                     self._conn.close()
@@ -57,21 +65,29 @@ if DATABASE_URL:
 
     def get_db():
         pool = _get_pool()
-        conn = pool.getconn()
-        # Verbindung prüfen und bei Bedarf neu aufbauen
         try:
-            conn.isolation_level  # raises if broken
-            cur = conn.cursor()
-            cur.execute("SELECT 1")
-            cur.close()
-        except Exception:
-            try:
-                pool.putconn(conn, close=True)
-            except Exception:
-                pass
-            conn = pool.getconn()
+            if pool is not None:
+                conn = pool.getconn()
+                # Verbindung prüfen
+                try:
+                    cur = conn.cursor()
+                    cur.execute("SELECT 1")
+                    cur.close()
+                except Exception:
+                    try:
+                        pool.putconn(conn, close=True)
+                    except Exception:
+                        pass
+                    conn = pool.getconn()
+                conn.autocommit = False
+                return _PooledConn(conn, pool)
+        except Exception as e:
+            print(f"[DB] Pool getconn failed, falling back to direct: {e}")
+
+        # Fallback: direkte Verbindung (kein Pool)
+        conn = psycopg2.connect(DATABASE_URL, connect_timeout=15)
         conn.autocommit = False
-        return _PooledConn(conn)
+        return _PooledConn(conn, None)
 
     def _cursor(conn):
         return conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
