@@ -1744,6 +1744,157 @@ def health():
     return jsonify({"status": "ok", "service": "meal-planner"}), 200
 
 
+# ── One-time data migration endpoint ────────────────────────────────────────────
+@app.route("/admin/migrate-sqlite", methods=["POST"])
+def migrate_sqlite():
+    """One-time migration: imports SQLite data into the production database."""
+    import os
+    secret = request.headers.get("X-Migrate-Secret", "")
+    if secret != os.environ.get("MIGRATE_SECRET", ""):
+        return jsonify({"error": "unauthorized"}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "no data"}), 400
+
+    results = {}
+    conn = db.get_db()
+    try:
+        cur = conn.cursor()
+        is_pg = db.IS_POSTGRES
+
+        def exec(sql_pg, sql_sq, params):
+            cur.execute(sql_pg if is_pg else sql_sq, params)
+
+        # Users
+        count = 0
+        for u in data.get("users", []):
+            if is_pg:
+                cur.execute("""
+                    INSERT INTO users (id, email, name, password_hash, is_admin, created_at, is_verified)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (id) DO UPDATE SET email=EXCLUDED.email, name=EXCLUDED.name,
+                    password_hash=EXCLUDED.password_hash, is_admin=EXCLUDED.is_admin, is_verified=EXCLUDED.is_verified
+                """, (u['id'], u['email'], u['name'], u['password_hash'], u['is_admin'], u['created_at'], u['is_verified']))
+            else:
+                cur.execute("INSERT OR REPLACE INTO users (id,email,name,password_hash,is_admin,created_at,is_verified) VALUES (?,?,?,?,?,?,?)",
+                    (u['id'], u['email'], u['name'], u['password_hash'], u['is_admin'], u['created_at'], u['is_verified']))
+            count += 1
+        if is_pg and data.get("users"):
+            cur.execute("SELECT setval('users_id_seq', (SELECT MAX(id) FROM users))")
+        results["users"] = count
+
+        # Week plans
+        count = 0
+        for p in data.get("week_plans", []):
+            if is_pg:
+                cur.execute("""
+                    INSERT INTO week_plans (id, user_id, week_start, cravings, status, created_at, default_persons, name, sort_order)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
+                """, (p['id'], p['user_id'], p['week_start'], p.get('cravings',''), p.get('status','in_progress'),
+                      p['created_at'], p.get('default_persons',2), p.get('name',''), p.get('sort_order',0)))
+            else:
+                cur.execute("INSERT OR IGNORE INTO week_plans (id,user_id,week_start,cravings,status,created_at,default_persons,name,sort_order) VALUES (?,?,?,?,?,?,?,?,?)",
+                    (p['id'], p['user_id'], p['week_start'], p.get('cravings',''), p.get('status','in_progress'),
+                     p['created_at'], p.get('default_persons',2), p.get('name',''), p.get('sort_order',0)))
+            count += 1
+        if is_pg and data.get("week_plans"):
+            cur.execute("SELECT setval('week_plans_id_seq', (SELECT MAX(id) FROM week_plans))")
+        results["week_plans"] = count
+
+        # Plan slots
+        count = 0
+        for s in data.get("plan_slots", []):
+            if is_pg:
+                cur.execute("""
+                    INSERT INTO plan_slots (id, plan_id, slot_id, label, type, note, leftovers, sort_order)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
+                """, (s['id'], s['plan_id'], s['slot_id'], s['label'], s['type'],
+                      s.get('note',''), s.get('leftovers',0), s.get('sort_order',0)))
+            else:
+                cur.execute("INSERT OR IGNORE INTO plan_slots (id,plan_id,slot_id,label,type,note,leftovers,sort_order) VALUES (?,?,?,?,?,?,?,?)",
+                    (s['id'], s['plan_id'], s['slot_id'], s['label'], s['type'],
+                     s.get('note',''), s.get('leftovers',0), s.get('sort_order',0)))
+            count += 1
+        if is_pg and data.get("plan_slots"):
+            cur.execute("SELECT setval('plan_slots_id_seq', (SELECT MAX(id) FROM plan_slots))")
+        results["plan_slots"] = count
+
+        # Meal selections
+        count = 0
+        for m in data.get("meal_selections", []):
+            if is_pg:
+                cur.execute("""
+                    INSERT INTO meal_selections (id, plan_id, slot_id, recipe_id, persons, is_leftover, created_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
+                """, (m['id'], m['plan_id'], m['slot_id'], m['recipe_id'],
+                      m.get('persons',2), m.get('is_leftover',0), m.get('created_at','')))
+            else:
+                cur.execute("INSERT OR IGNORE INTO meal_selections (id,plan_id,slot_id,recipe_id,persons,is_leftover,created_at) VALUES (?,?,?,?,?,?,?)",
+                    (m['id'], m['plan_id'], m['slot_id'], m['recipe_id'],
+                     m.get('persons',2), m.get('is_leftover',0), m.get('created_at','')))
+            count += 1
+        if is_pg and data.get("meal_selections"):
+            cur.execute("SELECT setval('meal_selections_id_seq', (SELECT MAX(id) FROM meal_selections))")
+        results["meal_selections"] = count
+
+        # Shopping items
+        count = 0
+        for s in data.get("shopping_items", []):
+            if is_pg:
+                cur.execute("""
+                    INSERT INTO shopping_items (id, plan_id, ingredient, amount, unit, category, checked, custom, created_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
+                """, (s['id'], s['plan_id'], s['ingredient'], s.get('amount',''),
+                      s.get('unit',''), s.get('category',''), s.get('checked',0),
+                      s.get('custom',0), s.get('created_at','')))
+            else:
+                cur.execute("INSERT OR IGNORE INTO shopping_items (id,plan_id,ingredient,amount,unit,category,checked,custom,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+                    (s['id'], s['plan_id'], s['ingredient'], s.get('amount',''),
+                     s.get('unit',''), s.get('category',''), s.get('checked',0),
+                     s.get('custom',0), s.get('created_at','')))
+            count += 1
+        if is_pg and data.get("shopping_items"):
+            cur.execute("SELECT setval('shopping_items_id_seq', (SELECT MAX(id) FROM shopping_items))")
+        results["shopping_items"] = count
+
+        # Favorites
+        count = 0
+        for f in data.get("favorites", []):
+            if is_pg:
+                cur.execute("INSERT INTO favorites (id, user_id, recipe_id, created_at) VALUES (%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
+                    (f['id'], f['user_id'], f['recipe_id'], f.get('created_at','')))
+            else:
+                cur.execute("INSERT OR IGNORE INTO favorites (id,user_id,recipe_id,created_at) VALUES (?,?,?,?)",
+                    (f['id'], f['user_id'], f['recipe_id'], f.get('created_at','')))
+            count += 1
+        if is_pg and data.get("favorites"):
+            cur.execute("SELECT setval('favorites_id_seq', (SELECT MAX(id) FROM favorites))")
+        results["favorites"] = count
+
+        # Never again
+        count = 0
+        for n in data.get("never_again", []):
+            if is_pg:
+                cur.execute("INSERT INTO never_again (id, user_id, recipe_id, created_at) VALUES (%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
+                    (n['id'], n['user_id'], n['recipe_id'], n.get('created_at','')))
+            else:
+                cur.execute("INSERT OR IGNORE INTO never_again (id,user_id,recipe_id,created_at) VALUES (?,?,?,?)",
+                    (n['id'], n['user_id'], n['recipe_id'], n.get('created_at','')))
+            count += 1
+        if is_pg and data.get("never_again"):
+            cur.execute("SELECT setval('never_again_id_seq', (SELECT MAX(id) FROM never_again))")
+        results["never_again"] = count
+
+        conn.commit()
+        return jsonify({"success": True, "migrated": results}), 200
+
+    except Exception as e:
+        conn.rollback()
+        import traceback
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
+
 # Beim Start (auch via gunicorn): Verzeichnisse + DB initialisieren
 os.makedirs(os.path.dirname(os.path.abspath(_DB_PATH)), exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
