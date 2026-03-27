@@ -1536,9 +1536,21 @@ def generate_instructions(recipe_id):
     if not recipe:
         return jsonify({"error": "Rezept nicht gefunden"}), 404
 
-    cached = db.get_instructions(recipe_id)
-    if cached:
-        return jsonify({"success": True, "instructions": cached, "cached": True})
+    # ?refresh=1 löscht den Cache und generiert neu
+    force_refresh = request.args.get("refresh") == "1"
+    if not force_refresh:
+        cached = db.get_instructions(recipe_id)
+        if cached:
+            return jsonify({"success": True, "instructions": cached, "cached": True})
+
+    if force_refresh:
+        conn = db.get_db()
+        try:
+            cur = db._cursor(conn)
+            cur.execute(f"DELETE FROM recipe_instructions WHERE recipe_id = {db.PH}", (recipe_id,))
+            conn.commit()
+        finally:
+            conn.close()
 
     steps = planner.generate_recipe_instructions(recipe)
     if steps:

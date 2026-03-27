@@ -941,14 +941,29 @@ def _fetch_instructions_chefkoch(recipe_name: str) -> list:
 
         # Erstes passendes Suchergebnis finden – nur echte Rezept-URLs (numerische ID)
         recipe_url = None
+        # Schlüsselwörter aus dem gesuchten Rezeptnamen extrahieren
+        search_keywords = set(re.sub(r'[^\w\s]', '', recipe_name.lower()).split())
+        # Unwichtige Wörter ignorieren
+        stop_words = {'mit', 'und', 'der', 'die', 'das', 'in', 'an', 'auf', 'für', 'von', 'zu', 'im'}
+        search_keywords -= stop_words
+
         for link in soup.find_all("a", href=True):
             href = link["href"]
             if re.search(r"/rezepte/\d{8,}/", href):
-                # Tracking-Fragment entfernen
-                recipe_url = href.split("#")[0]
-                if not recipe_url.startswith("http"):
-                    recipe_url = "https://www.chefkoch.de" + recipe_url
-                break
+                candidate_url = href.split("#")[0]
+                if not candidate_url.startswith("http"):
+                    candidate_url = "https://www.chefkoch.de" + candidate_url
+
+                # Titel aus dem Link-Text oder href extrahieren und prüfen
+                link_text = link.get_text(" ", strip=True).lower()
+                url_slug = candidate_url.lower()
+                combined = link_text + " " + url_slug
+
+                # Mindestens 1 wichtiges Schlüsselwort muss vorkommen
+                matches = sum(1 for kw in search_keywords if kw in combined)
+                if matches > 0:
+                    recipe_url = candidate_url
+                    break
 
         if not recipe_url:
             return []
