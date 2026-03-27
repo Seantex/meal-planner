@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Ernährungspräferenzen{% endblock %}
+
+{% block content %}
+
+<div class="container" style="max-width:720px;margin:2rem auto;padding:0 1rem;">
+
+  <!-- Page Header -->
+  <div style="margin-bottom:1.5rem;">
+    <a href="{{ url_for('index') }}" class="btn btn--ghost btn--sm" style="margin-bottom:1rem;">
+      &larr; Zurück
+    </a>
+    <h1 style="font-size:1.6rem;font-weight:800;margin:0 0 0.35rem;">
+      ⚙️ Ernährungspräferenzen
+    </h1>
+    <p style="color:var(--c-text-muted);font-size:0.95rem;margin:0;">
+      Deine Einstellungen beeinflussen die Rezeptvorschläge und den KI-Wochenplan.
+    </p>
+  </div>
+
+  <div class="card" style="padding:2rem 1.75rem 1.75rem;">
+    <form method="POST" action="{{ url_for('profile_preferences') }}">
+
+      <!-- ── Section 1: Ziel ─────────────────────────────────────────── -->
+      <section style="margin-bottom:2.5rem;">
+        <h2 style="font-size:1.05rem;font-weight:700;margin:0 0 1rem;color:var(--c-text);">
+          Ernährungsziel
+        </h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+
+          <label class="selection-card">
+            <input type="radio" name="goal" value="gesund_ernaehren"
+              {% if profile.goal == 'gesund_ernaehren' or not profile.goal %}checked{% endif %}>
+            <div class="selection-card-inner">
+              <span class="selection-card-icon">🌿</span>
+              <span class="selection-card-label">Gesund ernähren</span>
+            </div>
+          </label>
+
+          <label class="selection-card">
+            <input type="radio" name="goal" value="abnehmen"
+              {% if profile.goal == 'abnehmen' %}checked{% endif %}>
+            <div class="selection-card-inner">
+              <span class="selection-card-icon">🥗</span>
+              <span class="selection-card-label">Abnehmen</span>
+            </div>
+          </label>
+
+          <label class="selection-card">
+            <input type="radio" name="goal" value="muskelaufbau"
+              {% if profile.goal == 'muskelaufbau' %}checked{% endif %}>
+            <div class="selection-card-inner">
+              <span class="selection-card-icon">🏋️</span>
+              <span class="selection-card-label">Muskelaufbau</span>
+            </div>
+          </label>
+
+          <label class="selection-card">
+            <input type="radio" name="goal" value="gewicht_halten"
+              {% if profile.goal == 'gewicht_halten' %}checked{% endif %}>
+            <div class="selection-card-inner">
+              <span class="selection-card-icon">⚖️</span>
+              <span class="selection-card-label">Gewicht halten</span>
+            </div>
+          </label>
+
+        </div>
+      </section>
+
+      <!-- ── Section 2: Ernährungsweise ────────────────────────────── -->
+      <section style="margin-bottom:2.5rem;">
+        <h2 style="font-size:1.05rem;font-weight:700;margin:0 0 0.25rem;color:var(--c-text);">
+          Ernährungsweise
+        </h2>
+        <p style="font-size:0.875rem;color:var(--c-text-muted);margin:0 0 1rem;">
+          Wähle alles aus, was auf dich zutrifft.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:0.6rem;">
+
+          {% set dietary_options = [
+            ('vegetarisch', '🌱 Vegetarisch'),
+            ('vegan', '🌿 Vegan'),
+            ('glutenfrei', '🌾 Glutenfrei'),
+            ('laktosefrei', '🥛 Laktosefrei'),
+            ('halal', '☪️ Halal'),
+          ] %}
+          {% for val, label in dietary_options %}
+          <label class="chip-toggle">
+            <input type="checkbox" name="dietary" value="{{ val }}"
+              {% if val in dietary_list %}checked{% endif %}>
+            <span>{{ label }}</span>
+          </label>
+          {% endfor %}
+
+        </div>
+      </section>
+
+      <!-- ── Section 3: Allergien ───────────────────────────────────── -->
+      <section style="margin-bottom:2.5rem;">
+        <h2 style="font-size:1.05rem;font-weight:700;margin:0 0 0.25rem;color:var(--c-text);">
+          Allergien &amp; Unverträglichkeiten
+        </h2>
+        <p style="font-size:0.875rem;color:var(--c-text-muted);margin:0 0 1rem;">
+          Rezepte mit diesen Zutaten werden automatisch ausgeblendet.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:0.6rem;">
+
+          {% set allergy_options = [
+            ('gluten', 'Gluten'),
+            ('milch', 'Milch / Laktose'),
+            ('eier', 'Eier'),
+            ('nüsse', 'Nüsse'),
+            ('erdnüsse', 'Erdnüsse'),
+            ('fisch', 'Fisch'),
+            ('meeresfrüchte', 'Meeresfrüchte'),
+            ('soja', 'Soja'),
+            ('sesam', 'Sesam'),
+          ] %}
+          {% for val, label in allergy_options %}
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="{{ val }}"
+              {% if val in allergies_list %}checked{% endif %}>
+            <span>{{ label }}</span>
+          </label>
+          {% endfor %}
+
+        </div>
+      </section>
+
+      <!-- ── Section 4: Kalorienziel ───────────────────────────────── -->
+      <section style="margin-bottom:2.5rem;">
+        <h2 style="font-size:1.05rem;font-weight:700;margin:0 0 0.25rem;color:var(--c-text);">
+          Tägliches Kalorienziel <span style="color:var(--c-text-muted);font-weight:400;font-size:0.875rem;">(optional)</span>
+        </h2>
+        <p style="font-size:0.875rem;color:var(--c-text-muted);margin:0 0 1rem;">
+          Wird für Nährwertauswertungen verwendet.
+        </p>
+        <div style="max-width:220px;">
+          <input
+            type="number"
+            name="calorie_target"
+            min="800"
+            max="5000"
+            step="50"
+            placeholder="z.B. 2000"
+            value="{{ profile.calorie_target if profile.calorie_target else '' }}"
+            class="input"
+            style="width:100%;"
+          >
+          <span style="font-size:0.8rem;color:var(--c-text-muted);display:block;margin-top:0.4rem;">kcal pro Tag</span>
+        </div>
+      </section>
+
+      <!-- ── Submit ─────────────────────────────────────────────────── -->
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <button type="submit" class="btn btn--primary" style="min-width:200px;">
+          Präferenzen speichern
+        </button>
+        <a href="{{ url_for('index') }}" class="btn btn--ghost">Abbrechen</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  /* ── Selection Cards ────────────────────────────────────────────── */
+  .selection-card {
+    cursor: pointer;
+    display: block;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    transition: border-color 0.18s, background 0.18s, transform 0.12s;
+    user-select: none;
+  }
+  .selection-card:hover {
+    border-color: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.07);
+    transform: translateY(-1px);
+  }
+  .selection-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .selection-card:has(input:checked) {
+    border-color: var(--c-accent, #a78bfa);
+    background: rgba(167,139,250,0.12);
+  }
+  .selection-card-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 1.1rem 0.75rem;
+    text-align: center;
+  }
+  .selection-card-icon {
+    font-size: 1.75rem;
+    line-height: 1;
+  }
+  .selection-card-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--c-text);
+  }
+
+  /* ── Chip Toggles ───────────────────────────────────────────────── */
+  .chip-toggle {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    padding: 0.4rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--c-text-muted);
+    transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.1s;
+    user-select: none;
+  }
+  .chip-toggle:hover {
+    border-color: rgba(255,255,255,0.25);
+    color: var(--c-text);
+    transform: translateY(-1px);
+  }
+  .chip-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .chip-toggle:has(input:checked) {
+    border-color: var(--c-accent, #a78bfa);
+    background: rgba(167,139,250,0.15);
+    color: var(--c-text);
+  }
+  .chip-toggle--danger:has(input:checked) {
+    border-color: #f87171;
+    background: rgba(248,113,113,0.12);
+    color: var(--c-text);
+  }
+
+  /* ── Generic input ──────────────────────────────────────────────── */
+  .input {
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: var(--c-text);
+    padding: 0.6rem 0.9rem;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.18s;
+  }
+  .input:focus {
+    border-color: var(--c-accent, #a78bfa);
+  }
+  .input::placeholder {
+    color: var(--c-text-muted);
+  }
+</style>
+{% endblock %}

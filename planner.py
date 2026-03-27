@@ -81,6 +81,38 @@ def generate_week_suggestions(plan_id: int, cravings: str = "", user_id: int = N
     import random
     deals = db.get_deals()
     recipes = load_recipes(user_id=user_id)
+
+    # Ernährungspräferenzen des Nutzers anwenden
+    if user_id:
+        profile = db.get_user_profile(user_id)
+        dietary = json.loads(profile.get('dietary', '[]'))
+        allergies = json.loads(profile.get('allergies', '[]'))
+        goal = profile.get('goal', 'gesund_ernaehren')
+        dietary_set = set(dietary)
+        allergies_set = set(allergies)
+
+        def _passes_diet(r):
+            r_allergens = set(r.get('allergens', []))
+            r_dietary_flags = set(r.get('dietary', []))
+            if r_allergens & allergies_set:
+                return False
+            if 'vegan' in dietary_set and 'vegan' not in r_dietary_flags:
+                return False
+            if 'vegetarisch' in dietary_set and 'vegan' not in dietary_set:
+                if 'vegan' not in r_dietary_flags and 'vegetarisch' not in r_dietary_flags:
+                    return False
+            if 'glutenfrei' in dietary_set and 'gluten' in r_allergens:
+                return False
+            if 'laktosefrei' in dietary_set and 'milch' in r_allergens:
+                return False
+            return True
+
+        recipes = [r for r in recipes if _passes_diet(r)]
+    else:
+        dietary = []
+        allergies = []
+        goal = 'gesund_ernaehren'
+
     favorites = [f["recipe_id"] for f in db.get_favorites(user_id or 1)]
     never_again = [n["recipe_id"] for n in db.get_never_again(user_id or 1)]
     recent_ids = db.get_recent_recipe_ids(exclude_plan_id=plan_id, limit_plans=2, user_id=user_id or 1)
@@ -92,9 +124,23 @@ def generate_week_suggestions(plan_id: int, cravings: str = "", user_id: int = N
     by_id   = {r["id"]: r for r in available}
     by_name = {r["name"].lower(): r for r in available}
 
+    # Nutzerpräferenzen für den Prompt aufbereiten
+    pref_text = ""
+    if goal != 'gesund_ernaehren':
+        goals_map = {
+            'abnehmen': 'Gewichtsverlust und kalorienärmere Gerichte',
+            'muskelaufbau': 'proteinreiche Gerichte für Muskelaufbau',
+            'gewicht_halten': 'ausgewogene Ernährung zum Gewicht halten',
+        }
+        pref_text += f"Ziel des Nutzers: {goals_map.get(goal, '')}. "
+    if dietary:
+        pref_text += f"Ernährungsweise: {', '.join(dietary)}. "
+    if allergies:
+        pref_text += f"Allergien/Unverträglichkeiten: {', '.join(allergies)}. KEINE Gerichte mit diesen Zutaten! "
+
     suggestions_raw = _call_claude(deals=deals, recipes=available,
                                     favorites=favorites, cravings=cravings,
-                                    recent_ids=recent_ids)
+                                    recent_ids=recent_ids, pref_text=pref_text)
 
     result = {}
     # Global verwendete IDs über ALLE Slots tracken → keine Wiederholung
@@ -154,7 +200,8 @@ def generate_week_suggestions(plan_id: int, cravings: str = "", user_id: int = N
     return result
 
 
-def _call_claude(deals: list, recipes: list, favorites: list, cravings: str, recent_ids: list = None) -> dict:
+def _call_claude(deals: list, recipes: list, favorites: list, cravings: str,
+                 recent_ids: list = None, pref_text: str = "") -> dict:
     """
     Ruft Claude Haiku auf und gibt strukturierte Vorschläge zurück.
     """
@@ -168,12 +215,14 @@ def _call_claude(deals: list, recipes: list, favorites: list, cravings: str, rec
         recent_names = [id_to_name[rid] for rid in recent_ids if rid in id_to_name]
     recent_text = ", ".join(recent_names[:14]) if recent_names else "keine"
 
+    pref_section = f"\nNUTZERPRÄFERENZEN: {pref_text}" if pref_text else ""
+
     prompt = f"""Du bist ein österreichischer Meal-Planner Assistent. Erstelle für eine Woche (2 Personen, Studenten) Rezeptvorschläge.
 
 AKTUELLE SUPERMARKT-ANGEBOTE (Hofer/Lidl/Billa/Spar):
 {deals_text}
 
-NUTZERWUNSCH: {cravings if cravings else "keine speziellen Wünsche"}
+NUTZERWUNSCH: {cravings if cravings else "keine speziellen Wünsche"}{pref_section}
 
 LETZTE WOCHE BEREITS GEGESSEN (diese Rezepte NICHT vorschlagen – Abwechslung!): {recent_text}
 

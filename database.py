@@ -369,6 +369,20 @@ def _init_sqlite(c):
         )
     """)
 
+    # ── Benutzer-Profile (Onboarding) ─────────────────────────────────────────
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            user_id        INTEGER PRIMARY KEY,
+            goal           TEXT    DEFAULT 'gesund_ernaehren',
+            dietary        TEXT    DEFAULT '[]',
+            allergies      TEXT    DEFAULT '[]',
+            calorie_target INTEGER DEFAULT NULL,
+            onboarding_done INTEGER DEFAULT 0,
+            updated_at     TEXT    DEFAULT (datetime('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
 
 def _init_postgres(conn):
     """Erstellt alle Tabellen für PostgreSQL (IF NOT EXISTS)."""
@@ -515,6 +529,17 @@ def _init_postgres(conn):
             token_type TEXT    NOT NULL,
             expires_at TEXT    NOT NULL,
             created_at TEXT    DEFAULT NOW()
+        )""",
+        # user_profiles
+        """CREATE TABLE IF NOT EXISTS user_profiles (
+            user_id        INTEGER PRIMARY KEY,
+            goal           TEXT    DEFAULT 'gesund_ernaehren',
+            dietary        TEXT    DEFAULT '[]',
+            allergies      TEXT    DEFAULT '[]',
+            calorie_target INTEGER DEFAULT NULL,
+            onboarding_done INTEGER DEFAULT 0,
+            updated_at     TEXT    DEFAULT NOW(),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )""",
     ]
     cur = _cursor(conn)
@@ -711,6 +736,71 @@ def email_exists(email: str) -> bool:
         r = _fetchone(conn, f"SELECT 1 FROM users WHERE email = {PH} COLLATE NOCASE", (email.strip(),))
     conn.close()
     return r is not None
+
+
+# ── Benutzer-Profile (Onboarding) ─────────────────────────────────────────────
+
+_DEFAULT_PROFILE = {
+    'goal': 'gesund_ernaehren',
+    'dietary': '[]',
+    'allergies': '[]',
+    'calorie_target': None,
+    'onboarding_done': 0,
+}
+
+
+def get_user_profile(user_id: int) -> dict:
+    """Gibt das Profil des Nutzers zurück. Falls nicht vorhanden, sensible Defaults."""
+    conn = get_db()
+    row = _fetchone(conn, f"SELECT * FROM user_profiles WHERE user_id = {PH}", (user_id,))
+    conn.close()
+    if row is None:
+        result = dict(_DEFAULT_PROFILE)
+        result['user_id'] = user_id
+        return result
+    return dict(row)
+
+
+def save_user_profile(user_id: int, goal: str, dietary_json: str, allergies_json: str,
+                      calorie_target) -> None:
+    """Upsert Nutzerprofil, setzt onboarding_done=1."""
+    conn = get_db()
+    if IS_POSTGRES:
+        _exec(conn, f"""
+            INSERT INTO user_profiles (user_id, goal, dietary, allergies, calorie_target, onboarding_done, updated_at)
+            VALUES ({PH}, {PH}, {PH}, {PH}, {PH}, 1, NOW())
+            ON CONFLICT (user_id) DO UPDATE SET
+                goal = EXCLUDED.goal,
+                dietary = EXCLUDED.dietary,
+                allergies = EXCLUDED.allergies,
+                calorie_target = EXCLUDED.calorie_target,
+                onboarding_done = 1,
+                updated_at = NOW()
+        """, (user_id, goal, dietary_json, allergies_json, calorie_target))
+    else:
+        _exec(conn, f"""
+            INSERT INTO user_profiles (user_id, goal, dietary, allergies, calorie_target, onboarding_done, updated_at)
+            VALUES ({PH}, {PH}, {PH}, {PH}, {PH}, 1, datetime('now'))
+            ON CONFLICT(user_id) DO UPDATE SET
+                goal = excluded.goal,
+                dietary = excluded.dietary,
+                allergies = excluded.allergies,
+                calorie_target = excluded.calorie_target,
+                onboarding_done = 1,
+                updated_at = datetime('now')
+        """, (user_id, goal, dietary_json, allergies_json, calorie_target))
+    conn.commit()
+    conn.close()
+
+
+def is_onboarding_done(user_id: int) -> bool:
+    """Gibt True zurück wenn Onboarding abgeschlossen wurde."""
+    conn = get_db()
+    row = _fetchone(conn, f"SELECT onboarding_done FROM user_profiles WHERE user_id = {PH}", (user_id,))
+    conn.close()
+    if row is None:
+        return False
+    return bool(row.get('onboarding_done', 0))
 
 
 # ── KI-Limits ─────────────────────────────────────────────────────────────────

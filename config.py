@@ -11,7 +11,7 @@ CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 
 # ── Flask ──────────────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "meal-planner-secret-2024")
-DEBUG = os.getenv("DEBUG", "true").lower() == "true"
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 # ── Pfade ──────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

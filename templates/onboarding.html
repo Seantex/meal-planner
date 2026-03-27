@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block title %}Willkommen – Profil einrichten{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:720px;margin:2rem auto;padding:0 1rem;">
+
+  <div class="card" style="padding:2.5rem 2rem 2rem;">
+    <div style="text-align:center;margin-bottom:2.5rem;">
+      <div style="font-size:3rem;margin-bottom:0.75rem;">👋</div>
+      <h1 style="font-size:1.75rem;font-weight:800;margin:0 0 0.5rem;">Willkommen, {{ current_user.name }}!</h1>
+      <p style="color:var(--c-text-muted);font-size:1rem;margin:0;">
+        Lass uns deinen Meal Planner personalisieren. Das dauert nur eine Minute.
+      </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('onboarding_post') }}">
+
+      <!-- ── Section 1: Ziel ─────────────────────────────────────────── -->
+      <section style="margin-bottom:2.5rem;">
+        <h2 style="font-size:1.1rem;font-weight:700;margin:0 0 1rem;color:var(--c-text);">
+          Dein Ernährungsziel
+        </h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+
+          <label class="selection-card">
+            <input type="radio" name="goal" value="gesund_ernaehren" checked>
+            <div class="selection-card-inner">
+              <span class="selection-card-icon">🌿</span>
+              <span class="selection-card-label">Gesund ernähren</span>
+            </div>
+          </label>
+
+          <label class="selection-card">
+            <input type="radio" name="goal" value="abnehmen">
+            <div class="selection-card-inner">
+              <span class="selection-card-icon">🥗</span>
+              <span class="selection-card-label">Abnehmen</span>
+            </div>
+          </label>
+
+          <label class="selection-card">
+            <input type="radio" name="goal" value="muskelaufbau">
+            <div class="selection-card-inner">
+              <span class="selection-card-icon">🏋️</span>
+              <span class="selection-card-label">Muskelaufbau</span>
+            </div>
+          </label>
+
+          <label class="selection-card">
+            <input type="radio" name="goal" value="gewicht_halten">
+            <div class="selection-card-inner">
+              <span class="selection-card-icon">⚖️</span>
+              <span class="selection-card-label">Gewicht halten</span>
+            </div>
+          </label>
+
+        </div>
+      </section>
+
+      <!-- ── Section 2: Ernährungsweise ────────────────────────────── -->
+      <section style="margin-bottom:2.5rem;">
+        <h2 style="font-size:1.1rem;font-weight:700;margin:0 0 0.25rem;color:var(--c-text);">
+          Ernährungsweise
+        </h2>
+        <p style="font-size:0.875rem;color:var(--c-text-muted);margin:0 0 1rem;">
+          Wähle alles aus, was auf dich zutrifft.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:0.6rem;">
+
+          <label class="chip-toggle">
+            <input type="checkbox" name="dietary" value="vegetarisch">
+            <span>🌱 Vegetarisch</span>
+          </label>
+
+          <label class="chip-toggle">
+            <input type="checkbox" name="dietary" value="vegan">
+            <span>🌿 Vegan</span>
+          </label>
+
+          <label class="chip-toggle">
+            <input type="checkbox" name="dietary" value="glutenfrei">
+            <span>🌾 Glutenfrei</span>
+          </label>
+
+          <label class="chip-toggle">
+            <input type="checkbox" name="dietary" value="laktosefrei">
+            <span>🥛 Laktosefrei</span>
+          </label>
+
+          <label class="chip-toggle">
+            <input type="checkbox" name="dietary" value="halal">
+            <span>☪️ Halal</span>
+          </label>
+
+        </div>
+      </section>
+
+      <!-- ── Section 3: Allergien ───────────────────────────────────── -->
+      <section style="margin-bottom:2.5rem;">
+        <h2 style="font-size:1.1rem;font-weight:700;margin:0 0 0.25rem;color:var(--c-text);">
+          Allergien &amp; Unverträglichkeiten
+        </h2>
+        <p style="font-size:0.875rem;color:var(--c-text-muted);margin:0 0 1rem;">
+          Rezepte mit diesen Zutaten werden automatisch ausgeblendet.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:0.6rem;">
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="gluten">
+            <span>Gluten</span>
+          </label>
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="milch">
+            <span>Milch / Laktose</span>
+          </label>
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="eier">
+            <span>Eier</span>
+          </label>
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="nüsse">
+            <span>Nüsse</span>
+          </label>
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="erdnüsse">
+            <span>Erdnüsse</span>
+          </label>
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="fisch">
+            <span>Fisch</span>
+          </label>
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="meeresfrüchte">
+            <span>Meeresfrüchte</span>
+          </label>
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="soja">
+            <span>Soja</span>
+          </label>
+
+          <label class="chip-toggle chip-toggle--danger">
+            <input type="checkbox" name="allergies" value="sesam">
+            <span>Sesam</span>
+          </label>
+
+        </div>
+      </section>
+
+      <!-- ── Section 4: Kalorienziel (optional) ────────────────────── -->
+      <section style="margin-bottom:2.5rem;">
+        <h2 style="font-size:1.1rem;font-weight:700;margin:0 0 0.25rem;color:var(--c-text);">
+          Tägliches Kalorienziel <span style="color:var(--c-text-muted);font-weight:400;font-size:0.875rem;">(optional)</span>
+        </h2>
+        <p style="font-size:0.875rem;color:var(--c-text-muted);margin:0 0 1rem;">
+          Wird für Nährwertauswertungen verwendet.
+        </p>
+        <div style="max-width:220px;">
+          <input
+            type="number"
+            name="calorie_target"
+            min="800"
+            max="5000"
+            step="50"
+            placeholder="z.B. 2000"
+            class="input"
+            style="width:100%;"
+          >
+          <span style="font-size:0.8rem;color:var(--c-text-muted);display:block;margin-top:0.4rem;">kcal pro Tag</span>
+        </div>
+      </section>
+
+      <!-- ── Submit ─────────────────────────────────────────────────── -->
+      <div style="text-align:center;padding-top:0.5rem;">
+        <button type="submit" class="btn btn--primary" style="min-width:220px;font-size:1rem;padding:0.85rem 2rem;">
+          Los geht's &rarr;
+        </button>
+        <p style="font-size:0.8rem;color:var(--c-text-muted);margin-top:0.75rem;">
+          Du kannst alle Einstellungen später jederzeit unter <em>Ernährungspräferenzen</em> ändern.
+        </p>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  /* ── Selection Cards ────────────────────────────────────────────── */
+  .selection-card {
+    cursor: pointer;
+    display: block;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    transition: border-color 0.18s, background 0.18s, transform 0.12s;
+    user-select: none;
+  }
+  .selection-card:hover {
+    border-color: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.07);
+    transform: translateY(-1px);
+  }
+  .selection-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .selection-card:has(input:checked) {
+    border-color: var(--c-accent, #a78bfa);
+    background: rgba(167,139,250,0.12);
+  }
+  .selection-card-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 1.1rem 0.75rem;
+    text-align: center;
+  }
+  .selection-card-icon {
+    font-size: 1.75rem;
+    line-height: 1;
+  }
+  .selection-card-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--c-text);
+  }
+
+  /* ── Chip Toggles ───────────────────────────────────────────────── */
+  .chip-toggle {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    padding: 0.4rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--c-text-muted);
+    transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.1s;
+    user-select: none;
+  }
+  .chip-toggle:hover {
+    border-color: rgba(255,255,255,0.25);
+    color: var(--c-text);
+    transform: translateY(-1px);
+  }
+  .chip-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .chip-toggle:has(input:checked) {
+    border-color: var(--c-accent, #a78bfa);
+    background: rgba(167,139,250,0.15);
+    color: var(--c-text);
+  }
+  .chip-toggle--danger:has(input:checked) {
+    border-color: #f87171;
+    background: rgba(248,113,113,0.12);
+    color: var(--c-text);
+  }
+
+  /* ── Generic input ──────────────────────────────────────────────── */
+  .input {
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: var(--c-text);
+    padding: 0.6rem 0.9rem;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.18s;
+  }
+  .input:focus {
+    border-color: var(--c-accent, #a78bfa);
+  }
+  .input::placeholder {
+    color: var(--c-text-muted);
+  }
+</style>
+{% endblock %}

@@ -204,7 +204,7 @@ def register():
 <p>Meal Planner Team</p>"""
         )
         flash(f"Willkommen, {name}! Bitte bestätige deine E-Mail-Adresse (Link wurde gesendet an {email}).", "success")
-        return redirect(url_for("index"))
+        return redirect(url_for("onboarding"))
 
     return render_template("register.html")
 
@@ -239,12 +239,107 @@ def logout():
     return redirect(url_for("login"))
 
 
+# ── Onboarding ─────────────────────────────────────────────────────────────────
+
+def apply_dietary_filter(recipes, user_id):
+    """Filtert Rezepte basierend auf Ernährungspräferenzen und Allergien des Nutzers."""
+    profile = db.get_user_profile(user_id)
+    dietary = set(json.loads(profile.get('dietary', '[]')))
+    allergies = set(json.loads(profile.get('allergies', '[]')))
+
+    if not dietary and not allergies:
+        return recipes  # Kein Filter nötig
+
+    filtered = []
+    for r in recipes:
+        r_allergens = set(r.get('allergens', []))
+        r_dietary = set(r.get('dietary', []))
+
+        # Hard exclude: Allergen-Übereinstimmung
+        if r_allergens & allergies:
+            continue
+
+        # Ernährungsweise
+        if 'vegan' in dietary:
+            if 'vegan' not in r_dietary:
+                continue
+        elif 'vegetarisch' in dietary:
+            if 'vegan' not in r_dietary and 'vegetarisch' not in r_dietary:
+                continue
+
+        if 'glutenfrei' in dietary and 'gluten' in r_allergens:
+            continue
+        if 'laktosefrei' in dietary and 'milch' in r_allergens:
+            continue
+
+        filtered.append(r)
+    return filtered
+
+
+@app.route("/onboarding", methods=["GET"])
+@login_required
+def onboarding():
+    # Falls bereits abgeschlossen, zur Startseite weiterleiten
+    if db.is_onboarding_done(current_user.id):
+        return redirect(url_for("index"))
+    return render_template("onboarding.html")
+
+
+@app.route("/onboarding", methods=["POST"])
+@login_required
+def onboarding_post():
+    goal = request.form.get("goal", "gesund_ernaehren")
+    dietary = request.form.getlist("dietary")       # Multi-Select Checkboxen
+    allergies = request.form.getlist("allergies")   # Multi-Select Checkboxen
+    calorie_target = request.form.get("calorie_target", "")
+    calorie_target = int(calorie_target) if calorie_target.strip().isdigit() else None
+
+    db.save_user_profile(
+        current_user.id,
+        goal,
+        json.dumps(dietary),
+        json.dumps(allergies),
+        calorie_target
+    )
+    flash("Dein Profil wurde gespeichert! Willkommen beim Meal Planner!", "success")
+    return redirect(url_for("index"))
+
+
+@app.route("/profile/preferences", methods=["GET", "POST"])
+@login_required
+def profile_preferences():
+    if request.method == "POST":
+        goal = request.form.get("goal", "gesund_ernaehren")
+        dietary = request.form.getlist("dietary")
+        allergies = request.form.getlist("allergies")
+        calorie_target = request.form.get("calorie_target", "")
+        calorie_target = int(calorie_target) if calorie_target.strip().isdigit() else None
+
+        db.save_user_profile(
+            current_user.id,
+            goal,
+            json.dumps(dietary),
+            json.dumps(allergies),
+            calorie_target
+        )
+        flash("Deine Präferenzen wurden gespeichert!", "success")
+        return redirect(url_for("profile_preferences"))
+
+    profile = db.get_user_profile(current_user.id)
+    dietary_list = json.loads(profile.get('dietary', '[]'))
+    allergies_list = json.loads(profile.get('allergies', '[]'))
+    return render_template("profile_preferences.html", profile=profile,
+                           dietary_list=dietary_list, allergies_list=allergies_list)
+
+
 # ── Startseite ─────────────────────────────────────────────────────────────────
 
 @app.route("/")
 @login_required
 def index():
     db.init_db()
+    if not db.is_onboarding_done(current_user.id):
+        return redirect(url_for("onboarding"))
     plan_limit = _LIMITS.get("plan", 1)
     recent_plans = db.get_recent_plans(_uid(), limit=50)
     active_plan = recent_plans[0] if recent_plans else None
@@ -1066,6 +1161,8 @@ def shopping_pdf(plan_id):
 @login_required
 def recipes():
     all_recipes = planner.load_recipes(user_id=_uid())
+    # Ernährungspräferenzen anwenden (nur wenn kein manueller Filter aktiv)
+    all_recipes_filtered = apply_dietary_filter(all_recipes, _uid())
     favorites = [f["recipe_id"] for f in db.get_favorites(_uid())]
     never_again_ids = [n["recipe_id"] for n in db.get_never_again(_uid())]
     never_again_data = {n["recipe_id"]: n for n in db.get_never_again(_uid())}
@@ -1078,7 +1175,7 @@ def recipes():
     max_cal      = request.args.get("max_cal", "").strip()
     min_cal      = request.args.get("min_cal", "").strip()
 
-    filtered = all_recipes
+    filtered = all_recipes_filtered
     if search:
         filtered = [r for r in filtered
                     if search in r["name"].lower()
