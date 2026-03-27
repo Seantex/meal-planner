@@ -1885,6 +1885,32 @@ def migrate_sqlite():
             cur.execute("SELECT setval('never_again_id_seq', (SELECT MAX(id) FROM never_again))")
         results["never_again"] = count
 
+        # Deals
+        count = 0
+        for d in data.get("deals", []):
+            if is_pg:
+                cur.execute("""
+                    INSERT INTO deals (id, supermarket, product_name, description, price, original_price,
+                        discount_pct, discount_label, category, valid_from, valid_to, scraped_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
+                """, (d['id'], d['supermarket'], d['product_name'], d.get('description',''),
+                      d.get('price'), d.get('original_price'), d.get('discount_pct'),
+                      d.get('discount_label',''), d.get('category',''), d.get('valid_from'),
+                      d.get('valid_to'), d.get('scraped_at','')))
+            else:
+                cur.execute("""INSERT OR IGNORE INTO deals
+                    (id, supermarket, product_name, description, price, original_price,
+                     discount_pct, discount_label, category, valid_from, valid_to, scraped_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (d['id'], d['supermarket'], d['product_name'], d.get('description',''),
+                     d.get('price'), d.get('original_price'), d.get('discount_pct'),
+                     d.get('discount_label',''), d.get('category',''), d.get('valid_from'),
+                     d.get('valid_to'), d.get('scraped_at','')))
+            count += 1
+        if is_pg and data.get("deals"):
+            cur.execute("SELECT setval('deals_id_seq', (SELECT MAX(id) FROM deals))")
+        results["deals"] = count
+
         conn.commit()
         return jsonify({"success": True, "migrated": results}), 200
 
