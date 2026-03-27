@@ -338,8 +338,6 @@ def profile_preferences():
 @login_required
 def index():
     db.init_db()
-    if not db.is_onboarding_done(current_user.id):
-        return redirect(url_for("onboarding"))
     plan_limit = _LIMITS.get("plan", 1)
     recent_plans = db.get_recent_plans(_uid(), limit=50)
     active_plan = recent_plans[0] if recent_plans else None
