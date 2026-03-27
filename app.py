@@ -1529,6 +1529,54 @@ def api_recipe(recipe_id):
     return jsonify(recipe)
 
 
+@app.route("/api/recipe/<recipe_id>/ask", methods=["POST"])
+@login_required
+def ask_recipe(recipe_id):
+    """KI beantwortet Fragen zu einem Rezept."""
+    recipe = planner.get_recipe(recipe_id, user_id=_uid())
+    if not recipe:
+        return jsonify({"error": "Rezept nicht gefunden"}), 404
+
+    data = request.get_json() or {}
+    question = (data.get("question") or "").strip()
+    if not question:
+        return jsonify({"error": "Keine Frage angegeben"}), 400
+
+    # Zutaten als Text
+    ings_text = "\n".join(
+        f"- {i.get('amount','')} {i.get('unit','')} {i['name']}".strip()
+        for i in recipe.get("ingredients", [])
+    )
+
+    # Instructions falls vorhanden
+    instructions = db.get_instructions(recipe_id) or recipe.get("steps", [])
+    steps_text = ""
+    if instructions:
+        steps_text = "\nZubereitung:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(instructions))
+
+    prompt = f"""Du bist ein hilfreicher Koch-Assistent. Beantworte die folgende Frage zu diesem Rezept kurz und präzise auf Deutsch.
+
+Rezept: {recipe['name']}
+Zutaten:
+{ings_text}{steps_text}
+
+Frage: {question}
+
+Antworte direkt und konkret, maximal 3-4 Sätze."""
+
+    try:
+        client = planner._get_client()
+        message = client.messages.create(
+            model=planner.CLAUDE_MODEL,
+            max_tokens=400,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        answer = message.content[0].text.strip()
+        return jsonify({"answer": answer})
+    except Exception as e:
+        return jsonify({"answer": f"KI nicht verfügbar: {e}"}), 200
+
+
 @app.route("/api/recipe/<recipe_id>/instructions", methods=["POST"])
 @login_required
 def generate_instructions(recipe_id):

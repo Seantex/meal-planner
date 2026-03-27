@@ -157,6 +157,21 @@
       </div>
     </div>
 
+    <!-- Fragen zum Rezept -->
+    <div class="recipe-qa-section" id="qa-section">
+      <h2>💬 Fragen zum Rezept</h2>
+      <p class="modify-subtitle">Stelle der KI Fragen zu diesem Rezept — z.B. "Kann ich X durch Y ersetzen?", "Wie erkenne ich ob das Fleisch gar ist?", "Was passt als Beilage?"</p>
+      <div id="qa-messages" class="qa-messages"></div>
+      <div class="qa-input-row">
+        <input type="text" id="qa-input" class="modify-input"
+               placeholder="Deine Frage zum Rezept…" maxlength="300"
+               onkeydown="if(event.key==='Enter') askRecipe('{{ recipe.id }}')">
+        <button class="btn btn--primary" id="qa-btn" onclick="askRecipe('{{ recipe.id }}')">
+          ✨ Fragen
+        </button>
+      </div>
+    </div>
+
     <!-- KI-Rezept-Modifikation -->
     <div class="recipe-modify-section" id="modify-section">
       <div class="modify-header">
@@ -206,6 +221,41 @@ async function loadInstructions(recipeId) {
     content.innerHTML = '<p class="empty-hint">Fehler beim Generieren.</p>';
     if (btn) { btn.disabled = false; btn.textContent = '✨ Kochanleitung generieren'; }
   }
+}
+
+async function askRecipe(recipeId) {
+  const input = document.getElementById('qa-input');
+  const btn = document.getElementById('qa-btn');
+  const messages = document.getElementById('qa-messages');
+  const question = input ? input.value.trim() : '';
+  if (!question) { input?.focus(); return; }
+
+  // Show question bubble
+  messages.insertAdjacentHTML('beforeend',
+    `<div class="qa-msg qa-msg--user">${question.replace(/</g,'&lt;')}</div>`);
+  const loadingId = 'qa-loading-' + Date.now();
+  messages.insertAdjacentHTML('beforeend',
+    `<div class="qa-msg qa-msg--ai" id="${loadingId}">⏳ KI denkt nach…</div>`);
+  messages.scrollTop = messages.scrollHeight;
+
+  input.value = '';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/recipe/${recipeId}/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    const data = await res.json();
+    const el = document.getElementById(loadingId);
+    if (el) el.textContent = data.answer || 'Keine Antwort erhalten.';
+  } catch(e) {
+    const el = document.getElementById(loadingId);
+    if (el) el.textContent = 'Fehler beim Laden der Antwort.';
+  }
+  btn.disabled = false;
+  messages.scrollTop = messages.scrollHeight;
 }
 
 async function modifyRecipe(recipeId) {

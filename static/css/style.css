@@ -2362,3 +2362,48 @@ input[type="radio"] {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(155,92,246,.6); }
+
+/* ── Recipe Q&A Section ─────────────────────────────────────────────────── */
+.recipe-qa-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+.recipe-qa-section h2 { margin-bottom: .4rem; }
+.qa-messages {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 1rem 0;
+  padding-right: 4px;
+}
+.qa-messages:empty { display: none; }
+.qa-msg {
+  padding: .65rem 1rem;
+  border-radius: 12px;
+  font-size: .92rem;
+  line-height: 1.5;
+  max-width: 88%;
+}
+.qa-msg--user {
+  background: rgba(155,92,246,.18);
+  border: 1px solid rgba(155,92,246,.3);
+  align-self: flex-end;
+  color: var(--c-text);
+}
+.qa-msg--ai {
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--border);
+  align-self: flex-start;
+  color: var(--c-text);
+}
+.qa-input-row {
+  display: flex;
+  gap: .6rem;
+  margin-top: .5rem;
+}
+.qa-input-row .modify-input { flex: 1; }
