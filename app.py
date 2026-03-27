@@ -1923,6 +1923,10 @@ def migrate_sqlite():
             cur.execute("SELECT setval('deals_id_seq', (SELECT MAX(id) FROM deals))")
         results["deals"] = count
 
+        # Clear instruction cache (so wrong cached instructions are removed)
+        cur.execute("DELETE FROM recipe_instructions")
+        results["instructions_cleared"] = True
+
         conn.commit()
         return jsonify({"success": True, "migrated": results}), 200
 

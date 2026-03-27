@@ -1014,10 +1014,15 @@ def _fetch_instructions_chefkoch(recipe_name: str) -> list:
 def generate_recipe_instructions(recipe: dict) -> list:
     """
     Holt Schritt-für-Schritt Kochanweisungen für ein Rezept.
+    0. Direkte Steps im Rezept-JSON (höchste Priorität)
     1. Versucht zuerst Chefkoch.de zu scrapen.
     2. Fallback: Claude API (falls Guthaben vorhanden).
     Gibt eine Liste von Schritt-Strings zurück.
     """
+    # Priorität 0: Steps direkt im Rezept gespeichert
+    if recipe.get("steps"):
+        return recipe["steps"]
+
     # Primär: Chefkoch scrapen
     steps = _fetch_instructions_chefkoch(recipe["name"])
     if steps:
