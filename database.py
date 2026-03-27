@@ -11,7 +11,22 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
 
-if DATABASE_URL:
+def _try_postgres(url):
+    """Versucht psycopg2 zu importieren und eine Testverbindung herzustellen.
+    Gibt True zurück wenn erfolgreich, sonst False."""
+    try:
+        import psycopg2
+        conn = psycopg2.connect(url, connect_timeout=5)
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"[DB] PostgreSQL nicht erreichbar, fallback zu SQLite: {e}")
+        return False
+
+
+_USE_POSTGRES = bool(DATABASE_URL and DATABASE_URL.startswith("postgresql://") and _try_postgres(DATABASE_URL))
+
+if _USE_POSTGRES:
     import psycopg2
     import psycopg2.extras
     from psycopg2.pool import ThreadedConnectionPool
