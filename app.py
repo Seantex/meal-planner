@@ -1818,73 +1818,68 @@ def migrate_sqlite():
             cur.execute("SELECT setval('plan_slots_id_seq', (SELECT MAX(id) FROM plan_slots))")
         results["plan_slots"] = count
 
-        # Meal selections (local schema: meal_slot/selected_at; new schema: slot_id/created_at)
+        # Meal selections
         count = 0
         for m in data.get("meal_selections", []):
-            slot_id = m.get('slot_id') or m.get('meal_slot', '')
-            created_at = m.get('created_at') or m.get('selected_at', '')
+            meal_slot = m.get('meal_slot') or m.get('slot_id', '')
+            selected_at = m.get('selected_at') or m.get('created_at', '')
             if is_pg:
                 cur.execute("""
-                    INSERT INTO meal_selections (id, plan_id, slot_id, recipe_id, persons, is_leftover, created_at)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
-                """, (m['id'], m['plan_id'], slot_id, m['recipe_id'],
-                      m.get('persons', 2), m.get('is_leftover', 0), created_at))
+                    INSERT INTO meal_selections (id, plan_id, meal_slot, recipe_id, selected_at)
+                    VALUES (%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
+                """, (m['id'], m['plan_id'], meal_slot, m['recipe_id'], selected_at))
             else:
-                cur.execute("INSERT OR IGNORE INTO meal_selections (id,plan_id,slot_id,recipe_id,persons,is_leftover,created_at) VALUES (?,?,?,?,?,?,?)",
-                    (m['id'], m['plan_id'], slot_id, m['recipe_id'],
-                     m.get('persons', 2), m.get('is_leftover', 0), created_at))
+                cur.execute("INSERT OR IGNORE INTO meal_selections (id,plan_id,meal_slot,recipe_id,selected_at) VALUES (?,?,?,?,?)",
+                    (m['id'], m['plan_id'], meal_slot, m['recipe_id'], selected_at))
             count += 1
         if is_pg and data.get("meal_selections"):
             cur.execute("SELECT setval('meal_selections_id_seq', (SELECT MAX(id) FROM meal_selections))")
         results["meal_selections"] = count
 
-        # Shopping items (local schema: ingredient_name; new schema: ingredient)
+        # Shopping items
         count = 0
         for s in data.get("shopping_items", []):
-            ingredient = s.get('ingredient') or s.get('ingredient_name', '')
-            created_at = s.get('created_at', '')
+            ingredient_name = s.get('ingredient_name') or s.get('ingredient', '')
             if is_pg:
                 cur.execute("""
-                    INSERT INTO shopping_items (id, plan_id, ingredient, amount, unit, category, checked, custom, created_at)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
-                """, (s['id'], s['plan_id'], ingredient, s.get('amount', ''),
-                      s.get('unit', ''), s.get('category', ''), s.get('checked', 0),
-                      s.get('custom', 0), created_at))
+                    INSERT INTO shopping_items (id, plan_id, ingredient_name, amount, unit, category, checked)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING
+                """, (s['id'], s['plan_id'], ingredient_name, s.get('amount'),
+                      s.get('unit', ''), s.get('category', ''), s.get('checked', 0)))
             else:
-                cur.execute("INSERT OR IGNORE INTO shopping_items (id,plan_id,ingredient,amount,unit,category,checked,custom,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-                    (s['id'], s['plan_id'], ingredient, s.get('amount', ''),
-                     s.get('unit', ''), s.get('category', ''), s.get('checked', 0),
-                     s.get('custom', 0), created_at))
+                cur.execute("INSERT OR IGNORE INTO shopping_items (id,plan_id,ingredient_name,amount,unit,category,checked) VALUES (?,?,?,?,?,?,?)",
+                    (s['id'], s['plan_id'], ingredient_name, s.get('amount'),
+                     s.get('unit', ''), s.get('category', ''), s.get('checked', 0)))
             count += 1
         if is_pg and data.get("shopping_items"):
             cur.execute("SELECT setval('shopping_items_id_seq', (SELECT MAX(id) FROM shopping_items))")
         results["shopping_items"] = count
 
-        # Favorites (local schema: added_at; new schema: created_at)
+        # Favorites
         count = 0
         for f in data.get("favorites", []):
-            created_at = f.get('created_at') or f.get('added_at', '')
+            added_at = f.get('added_at') or f.get('created_at', '')
             if is_pg:
-                cur.execute("INSERT INTO favorites (id, user_id, recipe_id, created_at) VALUES (%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
-                    (f['id'], f['user_id'], f['recipe_id'], created_at))
+                cur.execute("INSERT INTO favorites (id, user_id, recipe_id, added_at) VALUES (%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
+                    (f['id'], f['user_id'], f['recipe_id'], added_at))
             else:
-                cur.execute("INSERT OR IGNORE INTO favorites (id,user_id,recipe_id,created_at) VALUES (?,?,?,?)",
-                    (f['id'], f['user_id'], f['recipe_id'], created_at))
+                cur.execute("INSERT OR IGNORE INTO favorites (id,user_id,recipe_id,added_at) VALUES (?,?,?,?)",
+                    (f['id'], f['user_id'], f['recipe_id'], added_at))
             count += 1
         if is_pg and data.get("favorites"):
             cur.execute("SELECT setval('favorites_id_seq', (SELECT MAX(id) FROM favorites))")
         results["favorites"] = count
 
-        # Never again (local schema: added_at; new schema: created_at)
+        # Never again
         count = 0
         for n in data.get("never_again", []):
-            created_at = n.get('created_at') or n.get('added_at', '')
+            added_at = n.get('added_at') or n.get('created_at', '')
             if is_pg:
-                cur.execute("INSERT INTO never_again (id, user_id, recipe_id, created_at) VALUES (%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
-                    (n['id'], n['user_id'], n['recipe_id'], created_at))
+                cur.execute("INSERT INTO never_again (id, user_id, recipe_id, added_at) VALUES (%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
+                    (n['id'], n['user_id'], n['recipe_id'], added_at))
             else:
-                cur.execute("INSERT OR IGNORE INTO never_again (id,user_id,recipe_id,created_at) VALUES (?,?,?,?)",
-                    (n['id'], n['user_id'], n['recipe_id'], created_at))
+                cur.execute("INSERT OR IGNORE INTO never_again (id,user_id,recipe_id,added_at) VALUES (?,?,?,?)",
+                    (n['id'], n['user_id'], n['recipe_id'], added_at))
             count += 1
         if is_pg and data.get("never_again"):
             cur.execute("SELECT setval('never_again_id_seq', (SELECT MAX(id) FROM never_again))")
