@@ -1806,6 +1806,26 @@ def health():
     return jsonify({"status": "ok", "service": "meal-planner"}), 200
 
 
+@app.route("/admin/db-status")
+def db_status():
+    """Debug: zeigt alle Wochenpläne und Zählungen in der DB."""
+    secret = request.args.get("secret", "")
+    if secret != os.environ.get("MIGRATE_SECRET", ""):
+        return jsonify({"error": "unauthorized"}), 403
+    conn = db.get_db()
+    plans = db._fetchall(conn, "SELECT id, user_id, name, week_start, status FROM week_plans ORDER BY id DESC LIMIT 60", ())
+    users = db._fetchall(conn, "SELECT id, email, name, is_admin FROM users ORDER BY id", ())
+    counts = {}
+    for t in ["week_plans", "meal_selections", "plan_slots", "ai_suggestions", "shopping_items", "favorites"]:
+        try:
+            r = db._fetchone(conn, f"SELECT COUNT(*) as c FROM {t}", ())
+            counts[t] = r["c"] if r else 0
+        except Exception:
+            counts[t] = "N/A"
+    conn.close()
+    return jsonify({"users": [dict(u) for u in users], "plans": [dict(p) for p in plans], "counts": counts})
+
+
 # ── One-time data migration endpoint ────────────────────────────────────────────
 @app.route("/admin/migrate-sqlite", methods=["POST"])
 def migrate_sqlite():
