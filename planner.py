@@ -911,18 +911,34 @@ def _fetch_instructions_chefkoch(recipe_name: str) -> list:
         "Accept": "text/html,application/xhtml+xml",
     }
 
+    def _looks_like_instruction(text: str) -> bool:
+        """Prüft ob ein Text wirklich ein Kochschritt ist (kein Keyword-String)."""
+        if len(text) < 20:
+            return False
+        words = text.split()
+        if len(words) < 3:
+            return False
+        # Keyword-Listen haben viele kurze Wörter — echte Anweisungen haben längere
+        long_words = sum(1 for w in words if len(w) > 7)
+        if long_words == 0 and len(words) < 8:
+            return False
+        # Muss mindestens ein typisches Kochverb oder Satzzeichen enthalten
+        has_verb_or_punct = any(c in text for c in '.,:!') or \
+                            any(w.lower().endswith(('en', 'ieren', 'eln', 'ern')) for w in words)
+        return has_verb_or_punct
+
     def _extract_steps_from_instructions(raw) -> list:
         """Rekursiv Schritt-Texte aus recipeInstructions extrahieren (alle Formate)."""
         steps = []
-        if isinstance(raw, str) and len(raw) > 20:
+        if isinstance(raw, str) and _looks_like_instruction(raw):
             steps.append(raw)
         elif isinstance(raw, list):
             for item in raw:
-                if isinstance(item, str) and len(item) > 20:
+                if isinstance(item, str) and _looks_like_instruction(item):
                     steps.append(item)
                 elif isinstance(item, dict):
                     t = item.get("text") or item.get("name") or ""
-                    if len(t) > 20:
+                    if _looks_like_instruction(t):
                         steps.append(t)
                     # HowToSection → itemListElement
                     sub = item.get("itemListElement")
