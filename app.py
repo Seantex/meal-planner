@@ -1419,6 +1419,10 @@ def recipe_detail(recipe_id):
     is_never = db.is_never_again(recipe_id, _uid())
     is_own = db.is_user_recipe(_uid(), recipe_id)
     instructions = db.get_instructions(recipe_id)
+    # Fallback: if no cached instructions, use steps directly from recipe JSON and cache them
+    if not instructions and recipe.get("steps"):
+        instructions = recipe["steps"]
+        db.save_instructions(recipe_id, instructions)
 
     ing_costs = {}
     total_cost = 0.0
