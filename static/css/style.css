@@ -2407,3 +2407,55 @@ input[type="radio"] {
   margin-top: .5rem;
 }
 .qa-input-row .modify-input { flex: 1; }
+
+/* ── Recipe Detail: Sections spacing & dark inputs ──────────────────────── */
+.recipe-instructions-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.instructions-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.instructions-header h2 { margin: 0; }
+.instructions-placeholder {
+  color: var(--t3);
+  font-size: .88rem;
+  margin-top: .5rem;
+}
+.instruction-list { display: flex; flex-direction: column; gap: 12px; list-style: none; padding: 0; margin: 0; }
+.instruction-step { display: flex; gap: 14px; padding: 14px 16px; background: var(--glass); border: 1px solid var(--border); border-radius: var(--r3); font-size: .88rem; line-height: 1.65; align-items: flex-start; }
+.step-text { flex: 1; color: var(--t); }
+
+.recipe-modify-section {
+  background: var(--card-bg, var(--glass));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+.modify-header { margin-bottom: 1rem; }
+.modify-header h2 { margin-bottom: .3rem; }
+.modify-subtitle { color: var(--t3); font-size: .85rem; margin: 0; }
+.modify-input-row { display: flex; gap: .6rem; }
+
+/* Dark-theme input for modify & QA — overrides browser default white */
+.modify-input {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  color: var(--t);
+  font-size: .9rem;
+  font-family: inherit;
+  padding: .65rem 1rem;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.modify-input:focus {
+  border-color: var(--p);
+  box-shadow: 0 0 0 3px var(--p-glow-sm);
+}
+.modify-input::placeholder { color: var(--t3); }
