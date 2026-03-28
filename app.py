@@ -1826,6 +1826,84 @@ def db_status():
     return jsonify({"users": [dict(u) for u in users], "plans": [dict(p) for p in plans], "counts": counts})
 
 
+@app.route("/admin/setup-echter-plan", methods=["POST"])
+def setup_echter_plan():
+    """Creates the 'Echter' week plan on the admin account after wiping all existing plans."""
+    secret = request.headers.get("X-Migrate-Secret", "")
+    if secret != os.environ.get("MIGRATE_SECRET", ""):
+        return jsonify({"error": "unauthorized"}), 403
+
+    conn = db.get_db()
+    PH = db.PH
+    is_pg = db.IS_POSTGRES
+    cur = conn.cursor()
+
+    # Delete test users and all week plans
+    cur.execute(f"DELETE FROM users WHERE id > 4")
+    cur.execute(f"DELETE FROM week_plans")  # CASCADE deletes plan_slots, meal_selections, etc.
+
+    # Ensure admin user exists with correct data
+    data = request.get_json() or {}
+    users = data.get("users", [])
+    for u in users:
+        if is_pg:
+            cur.execute(f"""
+                INSERT INTO users (id, email, name, password_hash, is_admin, created_at, is_verified)
+                VALUES ({PH},{PH},{PH},{PH},{PH},{PH},{PH})
+                ON CONFLICT (id) DO UPDATE SET email=EXCLUDED.email, name=EXCLUDED.name,
+                password_hash=EXCLUDED.password_hash, is_admin=EXCLUDED.is_admin, is_verified=EXCLUDED.is_verified
+            """, (u['id'], u['email'], u['name'], u['password_hash'], u['is_admin'], u['created_at'], u.get('is_verified', 1)))
+        else:
+            cur.execute("INSERT OR REPLACE INTO users (id,email,name,password_hash,is_admin,created_at,is_verified) VALUES (?,?,?,?,?,?,?)",
+                (u['id'], u['email'], u['name'], u['password_hash'], u['is_admin'], u['created_at'], u.get('is_verified', 1)))
+    if is_pg and users:
+        cur.execute("SELECT setval('users_id_seq', (SELECT MAX(id) FROM users))")
+
+    # Create the Echter week plan
+    plan = data.get("plan", {})
+    week_start = plan.get("week_start", "2026-03-28")
+    if is_pg:
+        cur.execute(f"""
+            INSERT INTO week_plans (user_id, week_start, cravings, status, created_at, default_persons, name, sort_order)
+            VALUES ({PH},{PH},{PH},{PH},{PH},{PH},{PH},{PH}) RETURNING id
+        """, (1, week_start, "", "in_progress", "2026-03-28 09:00:00", 2, "Echter", 0))
+        plan_id = cur.fetchone()[0] if is_pg else cur.lastrowid
+    else:
+        cur.execute("INSERT INTO week_plans (user_id,week_start,cravings,status,created_at,default_persons,name,sort_order) VALUES (?,?,?,?,?,?,?,?)",
+            (1, week_start, "", "in_progress", "2026-03-28 09:00:00", 2, "Echter", 0))
+        plan_id = cur.lastrowid
+
+    # Create slots
+    slots = data.get("slots", [])
+    for i, slot in enumerate(slots):
+        if is_pg:
+            cur.execute(f"""
+                INSERT INTO plan_slots (plan_id, slot_id, label, type, note, leftovers, sort_order)
+                VALUES ({PH},{PH},{PH},{PH},{PH},{PH},{PH})
+            """, (plan_id, slot['slot_id'], slot['label'], slot.get('type','weekday'),
+                  slot.get('note',''), slot.get('leftovers',0), i))
+        else:
+            cur.execute("INSERT INTO plan_slots (plan_id,slot_id,label,type,note,leftovers,sort_order) VALUES (?,?,?,?,?,?,?)",
+                (plan_id, slot['slot_id'], slot['label'], slot.get('type','weekday'),
+                 slot.get('note',''), slot.get('leftovers',0), i))
+
+    # Create meal selections
+    selections = data.get("selections", [])
+    for sel in selections:
+        if is_pg:
+            cur.execute(f"""
+                INSERT INTO meal_selections (plan_id, meal_slot, recipe_id, selected_at)
+                VALUES ({PH},{PH},{PH},{PH})
+            """, (plan_id, sel['slot_id'], sel['recipe_id'], "2026-03-28 09:00:00"))
+        else:
+            cur.execute("INSERT INTO meal_selections (plan_id,meal_slot,recipe_id,selected_at) VALUES (?,?,?,?)",
+                (plan_id, sel['slot_id'], sel['recipe_id'], "2026-03-28 09:00:00"))
+
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "plan_id": plan_id, "slots": len(slots), "selections": len(selections)})
+
+
 # ── One-time data migration endpoint ────────────────────────────────────────────
 @app.route("/admin/migrate-sqlite", methods=["POST"])
 def migrate_sqlite():
