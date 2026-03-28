@@ -282,6 +282,10 @@ def onboarding():
     # Falls bereits abgeschlossen, zur Startseite weiterleiten
     if db.is_onboarding_done(current_user.id):
         return redirect(url_for("index"))
+    # Bestehende Nutzer (mit Wochenplänen) überspringen das Onboarding automatisch
+    if db.get_recent_plans(current_user.id, limit=1):
+        db.save_user_profile(current_user.id, "gesund_ernaehren", "[]", "[]", None)
+        return redirect(url_for("index"))
     return render_template("onboarding.html")
 
 
